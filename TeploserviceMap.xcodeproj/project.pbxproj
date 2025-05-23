@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		9053FC822DE0FDF60086BA6A /* SubObjectsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9053FC812DE0FDF60086BA6A /* SubObjectsViewController.swift */; };
+		9053FC822DE0FDF60086BA6A /* BoilerHouseListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9053FC812DE0FDF60086BA6A /* BoilerHouseListViewController.swift */; };
+		9053FC862DE10BC10086BA6A /* HousesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9053FC852DE10BC10086BA6A /* HousesViewController.swift */; };
+		9053FC882DE116640086BA6A /* BoilerHouse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9053FC872DE116640086BA6A /* BoilerHouse.swift */; };
 		90B98A6F2DE0814A0024371E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A6E2DE0814A0024371E /* AppDelegate.swift */; };
 		90B98A712DE0814A0024371E /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A702DE0814A0024371E /* SceneDelegate.swift */; };
 		90B98A732DE0814A0024371E /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A722DE0814A0024371E /* ViewController.swift */; };
@@ -20,7 +22,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		9053FC812DE0FDF60086BA6A /* SubObjectsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubObjectsViewController.swift; sourceTree = "<group>"; };
+		9053FC812DE0FDF60086BA6A /* BoilerHouseListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoilerHouseListViewController.swift; sourceTree = "<group>"; };
+		9053FC852DE10BC10086BA6A /* HousesViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HousesViewController.swift; sourceTree = "<group>"; };
+		9053FC872DE116640086BA6A /* BoilerHouse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoilerHouse.swift; sourceTree = "<group>"; };
 		90B98A6B2DE0814A0024371E /* TeploserviceMap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TeploserviceMap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		90B98A6E2DE0814A0024371E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		90B98A702DE0814A0024371E /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -67,8 +71,10 @@
 				90B98A6E2DE0814A0024371E /* AppDelegate.swift */,
 				90B98A702DE0814A0024371E /* SceneDelegate.swift */,
 				90B98A722DE0814A0024371E /* ViewController.swift */,
-				9053FC812DE0FDF60086BA6A /* SubObjectsViewController.swift */,
+				9053FC812DE0FDF60086BA6A /* BoilerHouseListViewController.swift */,
+				9053FC852DE10BC10086BA6A /* HousesViewController.swift */,
 				90B98A852DE082270024371E /* SavedLocation.swift */,
+				9053FC872DE116640086BA6A /* BoilerHouse.swift */,
 				90B98A872DE0857F0024371E /* PersistenceController.swift */,
 				90B98A7A2DE0814B0024371E /* Assets.xcassets */,
 				90B98A7C2DE0814B0024371E /* LaunchScreen.storyboard */,
@@ -152,9 +158,11 @@
 				90B98A732DE0814A0024371E /* ViewController.swift in Sources */,
 				90B98A6F2DE0814A0024371E /* AppDelegate.swift in Sources */,
 				90B98A712DE0814A0024371E /* SceneDelegate.swift in Sources */,
+				9053FC862DE10BC10086BA6A /* HousesViewController.swift in Sources */,
 				90B98A8A2DE08BC40024371E /* ExportedPoint.swift in Sources */,
+				9053FC882DE116640086BA6A /* BoilerHouse.swift in Sources */,
 				90B98A882DE0857F0024371E /* PersistenceController.swift in Sources */,
-				9053FC822DE0FDF60086BA6A /* SubObjectsViewController.swift in Sources */,
+				9053FC822DE0FDF60086BA6A /* BoilerHouseListViewController.swift in Sources */,
 				90B98A862DE082270024371E /* SavedLocation.swift in Sources */,
 				90B98A792DE0814A0024371E /* TeploserviceMap.xcdatamodeld in Sources */,
 			);

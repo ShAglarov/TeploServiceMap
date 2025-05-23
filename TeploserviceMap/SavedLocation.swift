@@ -27,9 +27,13 @@ extension SavedLocation {
     @NSManaged public var accounts: Int32
     @NSManaged public var managementCompany: String?
 
+    // --- Добавь это свойство для связи с котельной ---
+    @NSManaged public var boilerHouse: BoilerHouse?
+
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 }
 
 extension SavedLocation: Identifiable {}
+
