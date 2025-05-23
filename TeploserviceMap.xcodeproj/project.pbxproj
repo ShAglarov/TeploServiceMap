@@ -10,12 +10,12 @@
 		90B98A6F2DE0814A0024371E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A6E2DE0814A0024371E /* AppDelegate.swift */; };
 		90B98A712DE0814A0024371E /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A702DE0814A0024371E /* SceneDelegate.swift */; };
 		90B98A732DE0814A0024371E /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A722DE0814A0024371E /* ViewController.swift */; };
-		90B98A762DE0814A0024371E /* Base in Resources */ = {isa = PBXBuildFile; fileRef = 90B98A752DE0814A0024371E /* Base */; };
 		90B98A792DE0814A0024371E /* TeploserviceMap.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A772DE0814A0024371E /* TeploserviceMap.xcdatamodeld */; };
 		90B98A7B2DE0814B0024371E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 90B98A7A2DE0814B0024371E /* Assets.xcassets */; };
 		90B98A7E2DE0814B0024371E /* Base in Resources */ = {isa = PBXBuildFile; fileRef = 90B98A7D2DE0814B0024371E /* Base */; };
 		90B98A862DE082270024371E /* SavedLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A852DE082270024371E /* SavedLocation.swift */; };
 		90B98A882DE0857F0024371E /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A872DE0857F0024371E /* PersistenceController.swift */; };
+		90B98A8A2DE08BC40024371E /* ExportedPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A892DE08BC40024371E /* ExportedPoint.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,13 +23,13 @@
 		90B98A6E2DE0814A0024371E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		90B98A702DE0814A0024371E /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		90B98A722DE0814A0024371E /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
-		90B98A752DE0814A0024371E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		90B98A782DE0814A0024371E /* TeploserviceMap.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = TeploserviceMap.xcdatamodel; sourceTree = "<group>"; };
 		90B98A7A2DE0814B0024371E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		90B98A7D2DE0814B0024371E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		90B98A7F2DE0814B0024371E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		90B98A852DE082270024371E /* SavedLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedLocation.swift; sourceTree = "<group>"; };
 		90B98A872DE0857F0024371E /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
+		90B98A892DE08BC40024371E /* ExportedPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportedPoint.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -67,11 +67,11 @@
 				90B98A722DE0814A0024371E /* ViewController.swift */,
 				90B98A852DE082270024371E /* SavedLocation.swift */,
 				90B98A872DE0857F0024371E /* PersistenceController.swift */,
-				90B98A742DE0814A0024371E /* Main.storyboard */,
 				90B98A7A2DE0814B0024371E /* Assets.xcassets */,
 				90B98A7C2DE0814B0024371E /* LaunchScreen.storyboard */,
 				90B98A7F2DE0814B0024371E /* Info.plist */,
 				90B98A772DE0814A0024371E /* TeploserviceMap.xcdatamodeld */,
+				90B98A892DE08BC40024371E /* ExportedPoint.swift */,
 			);
 			path = TeploserviceMap;
 			sourceTree = "<group>";
@@ -136,7 +136,6 @@
 			files = (
 				90B98A7B2DE0814B0024371E /* Assets.xcassets in Resources */,
 				90B98A7E2DE0814B0024371E /* Base in Resources */,
-				90B98A762DE0814A0024371E /* Base in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -150,6 +149,7 @@
 				90B98A732DE0814A0024371E /* ViewController.swift in Sources */,
 				90B98A6F2DE0814A0024371E /* AppDelegate.swift in Sources */,
 				90B98A712DE0814A0024371E /* SceneDelegate.swift in Sources */,
+				90B98A8A2DE08BC40024371E /* ExportedPoint.swift in Sources */,
 				90B98A882DE0857F0024371E /* PersistenceController.swift in Sources */,
 				90B98A862DE082270024371E /* SavedLocation.swift in Sources */,
 				90B98A792DE0814A0024371E /* TeploserviceMap.xcdatamodeld in Sources */,
@@ -159,14 +159,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
-		90B98A742DE0814A0024371E /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				90B98A752DE0814A0024371E /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
 		90B98A7C2DE0814B0024371E /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -310,7 +302,6 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -340,7 +331,6 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;

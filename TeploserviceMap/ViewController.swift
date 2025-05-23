@@ -8,6 +8,7 @@
 import UIKit
 import MapKit
 import CoreData
+import UniformTypeIdentifiers
 
 class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource, UITableViewDelegate {
 
@@ -19,6 +20,57 @@ class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource
     private var tableViewTopConstraint: NSLayoutConstraint?
 
     private var savedPoints: [SavedLocation] = []
+
+    // Получаем путь к файлу points.json в папке Documents
+    private var jsonFileURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("points.json")
+    }
+
+
+    private func exportPointsToJSON() {
+        let exportArray = savedPoints.map { ExportedPoint(name: $0.name, latitude: $0.latitude, longitude: $0.longitude) }
+        do {
+            let data = try JSONEncoder().encode(exportArray)
+            try data.write(to: jsonFileURL)
+            print("Экспортировано в:", jsonFileURL)
+            // Можно сразу вызвать шаринг (например, открыть share sheet)
+            let activityVC = UIActivityViewController(activityItems: [jsonFileURL], applicationActivities: nil)
+            present(activityVC, animated: true)
+        } catch {
+            print("Ошибка экспорта JSON:", error)
+        }
+    }
+
+    private func importPointsFromJSON() {
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: jsonFileURL.path) {
+            let alert = UIAlertController(title: "Файл не найден", message: "Экспортируйте точки перед импортом, либо скопируйте points.json в приложение через Files/AirDrop.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+            return
+        }
+        do {
+            let data = try Data(contentsOf: jsonFileURL)
+            let imported = try JSONDecoder().decode([ExportedPoint].self, from: data)
+            let context = PersistenceController.shared.context
+            // Удаляем старые (или меняй под merge)
+            for point in savedPoints {
+                context.delete(point)
+            }
+            for e in imported {
+                let newPoint = SavedLocation(context: context)
+                newPoint.name = e.name
+                newPoint.latitude = e.latitude
+                newPoint.longitude = e.longitude
+            }
+            try context.save()
+            loadPoints()
+            addSavedPointsToMap()
+            print("Импортировано точек:", imported.count)
+        } catch {
+            print("Ошибка импорта JSON:", error)
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -144,6 +196,65 @@ class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource
         let center = CLLocationCoordinate2D(latitude: 42.9778, longitude: 47.5147)
         let region = MKCoordinateRegion(center: center, latitudinalMeters: 9000, longitudinalMeters: 9000)
         mapView.setRegion(region, animated: false)
+
+        
+
+        let exportButton = UIButton(type: .system)
+        exportButton.setTitle("Экспорт точек", for: .normal)
+        exportButton.addTarget(self, action: #selector(exportButtonTapped), for: .touchUpInside)
+        exportButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(exportButton)
+
+        let importButton = UIButton(type: .system)
+        importButton.setTitle("Импорт точек", for: .normal)
+        importButton.addTarget(self, action: #selector(importButtonTapped), for: .touchUpInside)
+        importButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(importButton)
+
+        // Пример Constraints (подбери, чтобы красиво расположить)
+        NSLayoutConstraint.activate([
+            exportButton.topAnchor.constraint(equalTo: editButton.bottomAnchor, constant: 8),
+            exportButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+            importButton.topAnchor.constraint(equalTo: exportButton.bottomAnchor, constant: 8),
+            importButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8)
+        ])
+
+        let importFromFileButton = UIButton(type: .system)
+        importFromFileButton.setTitle("Загрузить из файла", for: .normal)
+        importFromFileButton.translatesAutoresizingMaskIntoConstraints = false
+        importFromFileButton.backgroundColor = .white
+        importFromFileButton.layer.cornerRadius = 8
+        importFromFileButton.layer.shadowOpacity = 0.2
+        importFromFileButton.layer.shadowOffset = CGSize(width: 0, height: 2)
+        importFromFileButton.addTarget(self, action: #selector(importFromFileTapped), for: .touchUpInside)
+        view.addSubview(importFromFileButton)
+
+        NSLayoutConstraint.activate([
+            importFromFileButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            importFromFileButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -80), // чтобы не пересекалось с другими кнопками
+            importFromFileButton.widthAnchor.constraint(equalToConstant: 170),
+            importFromFileButton.heightAnchor.constraint(equalToConstant: 44)
+        ])
+    }
+
+
+    @objc private func importFromFileTapped() {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.json])
+        picker.delegate = self
+        picker.allowsMultipleSelection = false
+        present(picker, animated: true)
+    }
+
+    @objc private func importFromJSON() {
+        importPointsFromJSON()
+    }
+
+    @objc private func exportButtonTapped() {
+        exportPointsToJSON()
+    }
+
+    @objc private func importButtonTapped() {
+        importPointsFromJSON()
     }
 
     @objc private func toggleEditMode() {
@@ -195,6 +306,13 @@ class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource
         if !savedPoints.isEmpty {
             mapView.showAnnotations(mapView.annotations, animated: false)
         }
+    }
+
+    @objc func importJSONTapped() {
+        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: [.json], asCopy: true)
+        documentPicker.delegate = self
+        documentPicker.allowsMultipleSelection = false
+        present(documentPicker, animated: true)
     }
 
     @objc private func handleMapLongPress(_ gesture: UILongPressGestureRecognizer) {
@@ -317,5 +435,101 @@ class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource
         circleRenderer.lineWidth = 1.0
         return circleRenderer
     }
+
+//    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+//        guard let url = urls.first else { return }
+//        // Проверяем доступность файла
+//        let coordinator = NSFileCoordinator()
+//        var error: NSError?
+//        var localURL: URL?
+//        coordinator.coordinate(readingItemAt: url, options: [], error: &error) { newURL in
+//            // Копируем файл в директорию Documents приложения
+//            let fileManager = FileManager.default
+//            let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+//            let destURL = docsURL.appendingPathComponent(newURL.lastPathComponent)
+//            do {
+//                if fileManager.fileExists(atPath: destURL.path) {
+//                    try fileManager.removeItem(at: destURL)
+//                }
+//                try fileManager.copyItem(at: newURL, to: destURL)
+//                localURL = destURL
+//            } catch {
+//                localURL = nil
+//            }
+//        }
+//        if let localURL = localURL {
+//            do {
+//                let data = try Data(contentsOf: localURL)
+//                let imported = try JSONDecoder().decode([ExportedPoint].self, from: data)
+//                let context = PersistenceController.shared.context
+//                for point in savedPoints {
+//                    context.delete(point)
+//                }
+//                for e in imported {
+//                    let newPoint = SavedLocation(context: context)
+//                    newPoint.name = e.name
+//                    newPoint.latitude = e.latitude
+//                    newPoint.longitude = e.longitude
+//                }
+//                try context.save()
+//                loadPoints()
+//                addSavedPointsToMap()
+//                let alert = UIAlertController(title: "Импорт завершён", message: "Загружено точек: \(imported.count)", preferredStyle: .alert)
+//                alert.addAction(UIAlertAction(title: "Ок", style: .default))
+//                present(alert, animated: true)
+//            } catch {
+//                let alert = UIAlertController(title: "Ошибка", message: "Не удалось импортировать точки из файла.\n\(error)", preferredStyle: .alert)
+//                alert.addAction(UIAlertAction(title: "Ок", style: .default))
+//                present(alert, animated: true)
+//            }
+//        } else {
+//            let alert = UIAlertController(title: "Ошибка", message: "Не удалось скопировать файл для чтения.", preferredStyle: .alert)
+//            alert.addAction(UIAlertAction(title: "Ок", style: .default))
+//            present(alert, animated: true)
+//        }
+//    }
 }
 
+extension ViewController: UIDocumentPickerDelegate {
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let selectedURL = urls.first else { return }
+        let fileManager = FileManager.default
+        let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let destinationURL = docsURL.appendingPathComponent(selectedURL.lastPathComponent)
+
+        // Копируем выбранный файл в Documents, если нужно
+        do {
+            if fileManager.fileExists(atPath: destinationURL.path) {
+                try fileManager.removeItem(at: destinationURL)
+            }
+            // Копируем, если файл еще не в Documents
+            if selectedURL.startAccessingSecurityScopedResource() {
+                defer { selectedURL.stopAccessingSecurityScopedResource() }
+                try fileManager.copyItem(at: selectedURL, to: destinationURL)
+            }
+            // Теперь читаем из destinationURL!
+            let data = try Data(contentsOf: destinationURL)
+            let imported = try JSONDecoder().decode([ExportedPoint].self, from: data)
+            // Сохраняем точки в CoreData...
+            let context = PersistenceController.shared.context
+            // Очистка старых точек, если надо
+            for point in savedPoints { context.delete(point) }
+            for e in imported {
+                let newPoint = SavedLocation(context: context)
+                newPoint.name = e.name
+                newPoint.latitude = e.latitude
+                newPoint.longitude = e.longitude
+            }
+            try context.save()
+            loadPoints()
+            addSavedPointsToMap()
+            let alert = UIAlertController(title: "Импорт завершён", message: "Загружено точек: \(imported.count)", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Ок", style: .default))
+            present(alert, animated: true)
+        } catch {
+            let alert = UIAlertController(title: "Ошибка импорта JSON", message: error.localizedDescription, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Ок", style: .default))
+            present(alert, animated: true)
+        }
+    }
+}
