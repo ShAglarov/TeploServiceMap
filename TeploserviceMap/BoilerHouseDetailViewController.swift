@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  HousesViewController.swift
 //  TeploserviceMap
 //
 //  Created by Murad Tataev on 23.05.2025.
@@ -9,27 +9,39 @@ import UIKit
 import MapKit
 import CoreData
 
-class BoilerHouseListViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, MKMapViewDelegate {
+class BoilerHouseDetailViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, MKMapViewDelegate {
 
     private let mapView = MKMapView()
     private let tableView = UITableView()
-    private var isTableViewHidden = false
+    private var boilerHouse: BoilerHouse
+    private var savedPoints: [SavedLocation] = []
+
     private var tableViewHeightConstraint: NSLayoutConstraint?
     private var mapViewHeightConstraint: NSLayoutConstraint?
     private var tableViewTopConstraint: NSLayoutConstraint?
+    private var isTableViewHidden = false
 
-    private var boilerHouses: [BoilerHouse] = []
+    // MARK: - Инициализация с котельной
+    init(boilerHouse: BoilerHouse) {
+        self.boilerHouse = boilerHouse
+        super.init(nibName: nil, bundle: nil)
+        self.title = boilerHouse.name
+    }
 
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // MARK: - View Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Котельные"
         view.backgroundColor = .systemBackground
         setupUI()
         mapView.delegate = self
         tableView.dataSource = self
         tableView.delegate = self
-        loadBoilerHouses()
-        addBoilerHousesToMap()
+        loadPoints()
+        addSavedPointsToMap()
 
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleTableLongPress(_:)))
         tableView.addGestureRecognizer(longPress)
@@ -39,6 +51,7 @@ class BoilerHouseListViewController: UIViewController, UITableViewDataSource, UI
         mapView.addGestureRecognizer(longPressRecognizer)
     }
 
+    // MARK: - UI Setup
     private func setupUI() {
         view.addSubview(mapView)
         view.addSubview(tableView)
@@ -59,13 +72,12 @@ class BoilerHouseListViewController: UIViewController, UITableViewDataSource, UI
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "BoilerCell")
-        
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "HouseCell")
         tableView.tableFooterView = UIView()
 
         let addButton = UIButton(type: .system)
-        addButton.setTitle("Добавить котельную", for: .normal)
-        addButton.addTarget(self, action: #selector(addBoilerHouseTapped), for: .touchUpInside)
+        addButton.setTitle("Добавить дом", for: .normal)
+        addButton.addTarget(self, action: #selector(addHouseByCoordinates), for: .touchUpInside)
         addButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(addButton)
         NSLayoutConstraint.activate([
@@ -104,71 +116,142 @@ class BoilerHouseListViewController: UIViewController, UITableViewDataSource, UI
         tableViewHeightConstraint = tableView.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.4)
         tableViewHeightConstraint?.isActive = true
 
-        let center = CLLocationCoordinate2D(latitude: 42.9778, longitude: 47.5147)
-        let region = MKCoordinateRegion(center: center, latitudinalMeters: 9000, longitudinalMeters: 9000)
+        // Центр на котельную
+        let center = CLLocationCoordinate2D(latitude: boilerHouse.latitude, longitude: boilerHouse.longitude)
+        let region = MKCoordinateRegion(center: center, latitudinalMeters: 3000, longitudinalMeters: 3000)
         mapView.setRegion(region, animated: false)
     }
 
-    // MARK: - Работа с котельными
+    // MARK: - Загрузка и добавление домов
 
-    private func loadBoilerHouses() {
-        let request: NSFetchRequest<BoilerHouse> = BoilerHouse.fetchRequest()
+    private func loadPoints() {
+        let request: NSFetchRequest<SavedLocation> = SavedLocation.fetchRequest()
+        request.predicate = NSPredicate(format: "boilerHouse == %@", boilerHouse)
         do {
-            boilerHouses = try PersistenceController.shared.context.fetch(request)
+            savedPoints = try PersistenceController.shared.context.fetch(request)
             tableView.reloadData()
-            addBoilerHousesToMap()
+            addSavedPointsToMap()
         } catch {
-            print("Ошибка загрузки котельных: \(error)")
+            print("Ошибка загрузки домов котельной: \(error)")
         }
     }
 
-    private func addBoilerHouse(
+    private func addHouse(
         name: String,
         latitude: Double,
-        longitude: Double
+        longitude: Double,
+        yearBuilt: Int32 = 0,
+        totalArea: Double = 0,
+        floors: Int32 = 0,
+        rooms: Int32 = 0,
+        accounts: Int32 = 0,
+        managementCompany: String = ""
     ) {
         let context = PersistenceController.shared.context
-        let newBoiler = BoilerHouse(context: context)
-        newBoiler.name = name
-        newBoiler.latitude = latitude
-        newBoiler.longitude = longitude
+        let newHouse = SavedLocation(context: context)
+        newHouse.name = name
+        newHouse.latitude = latitude
+        newHouse.longitude = longitude
+        newHouse.yearBuilt = yearBuilt
+        newHouse.totalArea = totalArea
+        newHouse.floors = floors
+        newHouse.rooms = rooms
+        newHouse.accounts = accounts
+        newHouse.managementCompany = managementCompany
+        newHouse.boilerHouse = boilerHouse // Привязка к котельной
 
         do {
             try context.save()
-            self.loadBoilerHouses()
+            loadPoints()
         } catch {
-            print("Ошибка сохранения котельной: \(error)")
+            print("Ошибка сохранения дома: \(error)")
         }
     }
 
-    private func addBoilerHousesToMap() {
+    private func addSavedPointsToMap() {
         mapView.removeAnnotations(mapView.annotations)
-        for boiler in boilerHouses {
-            guard boiler.latitude != 0, boiler.longitude != 0 else { continue }
+        for point in savedPoints {
             let annotation = MKPointAnnotation()
-            annotation.title = boiler.name ?? "Без названия"
-            annotation.coordinate = CLLocationCoordinate2D(latitude: boiler.latitude, longitude: boiler.longitude)
+            annotation.title = point.name
+            annotation.coordinate = point.coordinate
             mapView.addAnnotation(annotation)
         }
-        if !boilerHouses.isEmpty {
+        if !savedPoints.isEmpty {
             mapView.showAnnotations(mapView.annotations, animated: false)
         }
     }
 
-    // MARK: - Добавление по долгому нажатию на карту
+    // MARK: - Добавление дома по кнопке
+    @objc private func addHouseByCoordinates() {
+        let alert = UIAlertController(title: "Добавить дом", message: "Введите характеристики дома", preferredStyle: .alert)
+        alert.addTextField { $0.placeholder = "Название" }
+        alert.addTextField { $0.placeholder = "Широта (Latitude)" }
+        alert.addTextField { $0.placeholder = "Долгота (Longitude)" }
+        alert.addTextField { $0.placeholder = "Год постройки (например, 2000)" }
+        alert.addTextField { $0.placeholder = "Общая площадь (кв.м.)" }
+        alert.addTextField { $0.placeholder = "Этажей" }
+        alert.addTextField { $0.placeholder = "Помещений" }
+        alert.addTextField { $0.placeholder = "Лицевых счетов" }
+        alert.addTextField { $0.placeholder = "Управляющая организация" }
+        alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { _ in
+            let fields = alert.textFields!
+            let name = fields[0].text ?? ""
+            let latitude = Double(fields[1].text ?? "") ?? 0
+            let longitude = Double(fields[2].text ?? "") ?? 0
+            let yearBuilt = Int32(fields[3].text ?? "") ?? 0
+            let totalArea = Double(fields[4].text ?? "") ?? 0
+            let floors = Int32(fields[5].text ?? "") ?? 0
+            let rooms = Int32(fields[6].text ?? "") ?? 0
+            let accounts = Int32(fields[7].text ?? "") ?? 0
+            let managementCompany = fields[8].text ?? ""
+            self.addHouse(
+                name: name,
+                latitude: latitude,
+                longitude: longitude,
+                yearBuilt: yearBuilt,
+                totalArea: totalArea,
+                floors: floors,
+                rooms: rooms,
+                accounts: accounts,
+                managementCompany: managementCompany
+            )
+        }))
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        present(alert, animated: true)
+    }
 
+    // MARK: - Добавление дома по долгому нажатию на карту
     @objc private func handleMapLongPress(_ gesture: UILongPressGestureRecognizer) {
         if gesture.state == .began {
             let touchPoint = gesture.location(in: mapView)
             let coord = mapView.convert(touchPoint, toCoordinateFrom: mapView)
-            let alert = UIAlertController(title: "Новая котельная", message: "Введите название котельной", preferredStyle: .alert)
+            let alert = UIAlertController(title: "Новый дом", message: "Введите характеристики дома", preferredStyle: .alert)
             alert.addTextField { $0.placeholder = "Название" }
+            alert.addTextField { $0.placeholder = "Год постройки (например, 2000)" }
+            alert.addTextField { $0.placeholder = "Общая площадь (кв.м.)" }
+            alert.addTextField { $0.placeholder = "Этажей" }
+            alert.addTextField { $0.placeholder = "Помещений" }
+            alert.addTextField { $0.placeholder = "Лицевых счетов" }
+            alert.addTextField { $0.placeholder = "Управляющая организация" }
             alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { _ in
-                let name = alert.textFields?.first?.text ?? ""
-                self.addBoilerHouse(
+                let fields = alert.textFields!
+                let name = fields[0].text ?? ""
+                let yearBuilt = Int32(fields[1].text ?? "") ?? 0
+                let totalArea = Double(fields[2].text ?? "") ?? 0
+                let floors = Int32(fields[3].text ?? "") ?? 0
+                let rooms = Int32(fields[4].text ?? "") ?? 0
+                let accounts = Int32(fields[5].text ?? "") ?? 0
+                let managementCompany = fields[6].text ?? ""
+                self.addHouse(
                     name: name,
                     latitude: coord.latitude,
-                    longitude: coord.longitude
+                    longitude: coord.longitude,
+                    yearBuilt: yearBuilt,
+                    totalArea: totalArea,
+                    floors: floors,
+                    rooms: rooms,
+                    accounts: accounts,
+                    managementCompany: managementCompany
                 )
             }))
             alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
@@ -176,30 +259,7 @@ class BoilerHouseListViewController: UIViewController, UITableViewDataSource, UI
         }
     }
 
-    // MARK: - Добавление котельной по кнопке
-
-    @objc private func addBoilerHouseTapped() {
-        let alert = UIAlertController(title: "Добавить котельную", message: "Введите название и координаты", preferredStyle: .alert)
-        alert.addTextField { $0.placeholder = "Название" }
-        alert.addTextField { $0.placeholder = "Широта (Latitude)" }
-        alert.addTextField { $0.placeholder = "Долгота (Longitude)" }
-        alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { _ in
-            let fields = alert.textFields!
-            let name = fields[0].text ?? ""
-            let latitude = Double(fields[1].text ?? "") ?? 0
-            let longitude = Double(fields[2].text ?? "") ?? 0
-            self.addBoilerHouse(
-                name: name,
-                latitude: latitude,
-                longitude: longitude
-            )
-        }))
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        present(alert, animated: true)
-    }
-
     // MARK: - MKMapViewDelegate
-
     @objc private func mapTypeChanged(_ sender: UISegmentedControl) {
         switch sender.selectedSegmentIndex {
         case 0: mapView.mapType = .standard
@@ -209,21 +269,7 @@ class BoilerHouseListViewController: UIViewController, UITableViewDataSource, UI
         }
     }
 
-    // MARK: - Долгое нажатие по таблице
-
-    @objc private func handleTableLongPress(_ gesture: UILongPressGestureRecognizer) {
-        let point = gesture.location(in: tableView)
-        guard let indexPath = tableView.indexPathForRow(at: point),
-              gesture.state == .began else { return }
-
-        let selectedBoiler = boilerHouses[indexPath.row]
-        // Создаём новый контроллер с выбранной котельной
-        let detailVC = BoilerHouseDetailViewController(boilerHouse: selectedBoiler)
-        navigationController?.pushViewController(detailVC, animated: true)
-    }
-
     // MARK: - Показать/скрыть список
-
     @objc private func toggleListVisibility() {
         isTableViewHidden.toggle()
         if isTableViewHidden {
@@ -244,29 +290,26 @@ class BoilerHouseListViewController: UIViewController, UITableViewDataSource, UI
     }
 
     // MARK: - TableView DataSource
-
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return boilerHouses.count
+        return savedPoints.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "BoilerCell") ??
-            UITableViewCell(style: .subtitle, reuseIdentifier: "BoilerCell")
-        let boiler = boilerHouses[indexPath.row]
-        cell.textLabel?.text = boiler.name ?? "Без названия"
-        cell.detailTextLabel?.text = String(format: "Lat: %.4f, Lon: %.4f", boiler.latitude, boiler.longitude)
+        let cell = tableView.dequeueReusableCell(withIdentifier: "HouseCell") ??
+            UITableViewCell(style: .subtitle, reuseIdentifier: "HouseCell")
+        let point = savedPoints[indexPath.row]
+        cell.textLabel?.text = point.name
+        cell.detailTextLabel?.text = String(format: "Lat: %.4f, Lon: %.4f", point.latitude, point.longitude)
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let boiler = boilerHouses[indexPath.row]
-        let coord = CLLocationCoordinate2D(latitude: boiler.latitude, longitude: boiler.longitude)
-        let region = MKCoordinateRegion(center: coord, span: MKCoordinateSpan(latitudeDelta: 0.0010, longitudeDelta: 0.0010))
+        let point = savedPoints[indexPath.row]
+        let region = MKCoordinateRegion(center: point.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.0010, longitudeDelta: 0.0010))
         mapView.setRegion(region, animated: true)
 
-        // Выделяем аннотацию на карте
         if let annotation = mapView.annotations.first(where: { ann in
-            ann.coordinate.latitude == boiler.latitude && ann.coordinate.longitude == boiler.longitude
+            ann.coordinate.latitude == point.latitude && ann.coordinate.longitude == point.longitude
         }) {
             mapView.selectAnnotation(annotation, animated: true)
         }
@@ -274,38 +317,38 @@ class BoilerHouseListViewController: UIViewController, UITableViewDataSource, UI
         tableView.deselectRow(at: indexPath, animated: true)
     }
 
-    // Удаление котельных свайпом
+    // Удаление дома свайпом
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
             let context = PersistenceController.shared.context
-            let toDelete = boilerHouses[indexPath.row]
+            let toDelete = savedPoints[indexPath.row]
             context.delete(toDelete)
             do {
                 try context.save()
-                loadBoilerHouses()
+                loadPoints()
             } catch {
-                print("Ошибка удаления котельной: \(error)")
+                print("Ошибка удаления дома: \(error)")
             }
         }
     }
 
+    // Свайп: "Редактировать" и "Удалить"
     func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-        // Кнопка редактирования
         let edit = UIContextualAction(style: .normal, title: "Редакт.") { [weak self] (action, view, completionHandler) in
             guard let self = self else { return }
-            let boiler = self.boilerHouses[indexPath.row]
-            let alert = UIAlertController(title: "Редактировать котельную", message: "Измените название или координаты", preferredStyle: .alert)
-            alert.addTextField { $0.text = boiler.name }
-            alert.addTextField { $0.text = boiler.latitude == 0 ? "" : "\(boiler.latitude)" }
-            alert.addTextField { $0.text = boiler.longitude == 0 ? "" : "\(boiler.longitude)" }
+            let point = self.savedPoints[indexPath.row]
+            let alert = UIAlertController(title: "Редактировать дом", message: "Измените данные", preferredStyle: .alert)
+            alert.addTextField { $0.text = point.name }
+            alert.addTextField { $0.text = "\(point.latitude)" }
+            alert.addTextField { $0.text = "\(point.longitude)" }
             alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { _ in
                 let fields = alert.textFields!
-                boiler.name = fields[0].text ?? ""
-                boiler.latitude = Double(fields[1].text ?? "") ?? 0
-                boiler.longitude = Double(fields[2].text ?? "") ?? 0
+                point.name = fields[0].text ?? ""
+                point.latitude = Double(fields[1].text ?? "") ?? 0
+                point.longitude = Double(fields[2].text ?? "") ?? 0
                 do {
                     try PersistenceController.shared.context.save()
-                    self.loadBoilerHouses()
+                    self.loadPoints()
                 } catch {
                     print("Ошибка сохранения: \(error)")
                 }
@@ -316,34 +359,37 @@ class BoilerHouseListViewController: UIViewController, UITableViewDataSource, UI
         }
         edit.backgroundColor = .orange
 
-        // Кнопка удаления
         let delete = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] (action, view, completionHandler) in
             guard let self = self else { return }
             let context = PersistenceController.shared.context
-            let toDelete = self.boilerHouses[indexPath.row]
+            let toDelete = self.savedPoints[indexPath.row]
             context.delete(toDelete)
             do {
                 try context.save()
-                self.loadBoilerHouses()
+                self.loadPoints()
             } catch {
-                print("Ошибка удаления котельной: \(error)")
+                print("Ошибка удаления дома: \(error)")
             }
             completionHandler(true)
         }
 
-        // Порядок в массиве ― справа налево: [удалить, редактировать]
         return UISwipeActionsConfiguration(actions: [delete, edit])
     }
 
-    // MARK: - MKMapViewDelegate (аннотация — круг если надо)
+    // MARK: - MKMapViewDelegate
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-        guard let circleOverlay = overlay as? MKCircle else {
-            return MKOverlayRenderer(overlay: overlay)
-        }
-        let circleRenderer = MKCircleRenderer(circle: circleOverlay)
-        circleRenderer.fillColor = UIColor.red.withAlphaComponent(0.3)
-        circleRenderer.strokeColor = .red
-        circleRenderer.lineWidth = 1.0
-        return circleRenderer
+        return MKOverlayRenderer(overlay: overlay)
+    }
+
+    // MARK: - Долгое нажатие по таблице (можно сделать просмотр подробной информации)
+    @objc private func handleTableLongPress(_ gesture: UILongPressGestureRecognizer) {
+        let point = gesture.location(in: tableView)
+        guard let indexPath = tableView.indexPathForRow(at: point),
+              gesture.state == .began else { return }
+
+        let house = savedPoints[indexPath.row]
+        let alert = UIAlertController(title: house.name, message: "Lat: \(house.latitude)\nLon: \(house.longitude)", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "ОК", style: .default))
+        present(alert, animated: true)
     }
 }
