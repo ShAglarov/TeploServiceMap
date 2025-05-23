@@ -96,9 +96,22 @@ class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource
         loadPoints()
         addSavedPointsToMap()
 
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleTableLongPress(_:)))
+        tableView.addGestureRecognizer(longPress)
+
         let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleMapLongPress(_:)))
         longPressRecognizer.minimumPressDuration = 0.5
         mapView.addGestureRecognizer(longPressRecognizer)
+
+    }
+
+    @objc private func handleTableLongPress(_ gesture: UILongPressGestureRecognizer) {
+        let point = gesture.location(in: tableView)
+        guard let indexPath = tableView.indexPathForRow(at: point),
+              gesture.state == .began else { return }
+
+        let selectedPoint = savedPoints[indexPath.row]
+        presentEditDetailsAlert(for: selectedPoint)
     }
 
     @objc private func mapTypeChanged(_ sender: UISegmentedControl) {
@@ -552,7 +565,12 @@ extension ViewController: UIDocumentPickerDelegate {
                 newPoint.name = e.name
                 newPoint.latitude = e.latitude
                 newPoint.longitude = e.longitude
-                // ... (остальные поля)
+                newPoint.yearBuilt = Int32(e.yearBuilt ?? 0)
+                newPoint.totalArea = e.totalArea ?? 0
+                newPoint.floors = Int32(e.floors ?? 0)
+                newPoint.rooms = Int32(e.rooms ?? 0)
+                newPoint.accounts = Int32(e.accounts ?? 0)
+                newPoint.managementCompany = e.managementCompany
             }
             try context.save()
             loadPoints()
@@ -565,5 +583,30 @@ extension ViewController: UIDocumentPickerDelegate {
             alert.addAction(UIAlertAction(title: "Ок", style: .default))
             present(alert, animated: true)
         }
+    }
+
+    func presentEditDetailsAlert(for point: SavedLocation) {
+        let alert = UIAlertController(title: "Характеристики дома", message: "Введите/измените информацию", preferredStyle: .alert)
+        alert.addTextField { $0.placeholder = "Год постройки (например, 2003)"; $0.text = point.yearBuilt == 0 ? "" : "\(point.yearBuilt)" }
+        alert.addTextField { $0.placeholder = "Общая площадь (кв.м.)"; $0.text = point.totalArea == 0 ? "" : "\(point.totalArea)" }
+        alert.addTextField { $0.placeholder = "Этажей"; $0.text = point.floors == 0 ? "" : "\(point.floors)" }
+        alert.addTextField { $0.placeholder = "Помещений"; $0.text = point.rooms == 0 ? "" : "\(point.rooms)" }
+        alert.addTextField { $0.placeholder = "Лицевых счетов"; $0.text = point.accounts == 0 ? "" : "\(point.accounts)" }
+        alert.addTextField { $0.placeholder = "Управляющая организация"; $0.text = point.managementCompany }
+
+        alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { _ in
+            let fields = alert.textFields!
+            point.yearBuilt = Int32(fields[0].text ?? "") ?? 0
+            point.totalArea = Double(fields[1].text ?? "") ?? 0
+            point.floors = Int32(fields[2].text ?? "") ?? 0
+            point.rooms = Int32(fields[3].text ?? "") ?? 0
+            point.accounts = Int32(fields[4].text ?? "") ?? 0
+            point.managementCompany = fields[5].text ?? ""
+            self.saveContext()
+            self.loadPoints()
+            self.addSavedPointsToMap()
+        }))
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        present(alert, animated: true)
     }
 }
