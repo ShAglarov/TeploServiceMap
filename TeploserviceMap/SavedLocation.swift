@@ -20,6 +20,12 @@ extension SavedLocation {
     @NSManaged public var name: String
     @NSManaged public var latitude: Double
     @NSManaged public var longitude: Double
+    @NSManaged public var yearBuilt: Int32
+    @NSManaged public var totalArea: Double
+    @NSManaged public var floors: Int32
+    @NSManaged public var rooms: Int32
+    @NSManaged public var accounts: Int32
+    @NSManaged public var managementCompany: String?
 
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
