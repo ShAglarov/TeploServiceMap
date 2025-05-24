@@ -126,7 +126,7 @@ class BoilerHouseListViewController: BaseMapListViewController<BoilerHouse> {
 
     // MARK: - Ячейка
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "BaseCell") ?? UITableViewCell(style: .subtitle, reuseIdentifier: "BaseCell")
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         let boiler = items[indexPath.row]
         cell.textLabel?.text = boiler.name ?? "Без названия"
         cell.detailTextLabel?.text = String(format: "Lat: %.4f, Lon: %.4f", boiler.latitude, boiler.longitude)

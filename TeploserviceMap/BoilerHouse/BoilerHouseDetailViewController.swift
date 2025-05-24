@@ -149,7 +149,7 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
 
     // MARK: - Ячейка таблицы
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "BaseCell") ?? UITableViewCell(style: .subtitle, reuseIdentifier: "BaseCell")
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         let point = items[indexPath.row]
         cell.textLabel?.text = point.name
         cell.detailTextLabel?.text = String(format: "Lat: %.4f, Lon: %.4f", point.latitude, point.longitude)

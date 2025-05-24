@@ -15,6 +15,7 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
     // --- Публичные свойства для дочерних классов ---
     let mapView = MKMapView()
     let tableView = UITableView()
+
     let floatingButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -30,15 +31,35 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
     }()
     let mapTypeButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "map.fill"), for: .normal)
-        button.tintColor = .label
-        button.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.92)
-        button.layer.cornerRadius = 22
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = 0.08
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowRadius = 6
         button.translatesAutoresizingMaskIntoConstraints = false
+        button.setImage(UIImage(systemName: "map.fill"), for: .normal)
+        // Яркая, но не броская иконка (голубой)
+        button.tintColor = UIColor.systemBlue.withAlphaComponent(0.62)
+        // Легкий прозрачный фон с голубым
+        button.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.16)
+        button.layer.cornerRadius = 22
+        button.layer.shadowColor = UIColor.systemBlue.withAlphaComponent(0.22).cgColor
+        button.layer.shadowOpacity = 0.25
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 8
+        button.alpha = 0.85
+        return button
+    }()
+
+    let locateMeButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setImage(UIImage(systemName: "location.fill"), for: .normal)
+        // Яркая иконка (зелёный)
+        button.tintColor = UIColor.systemGreen.withAlphaComponent(0.62)
+        // Лёгкий прозрачный фон с зеленоватым оттенком
+        button.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.14)
+        button.layer.cornerRadius = 22
+        button.layer.shadowColor = UIColor.systemGreen.withAlphaComponent(0.16).cgColor
+        button.layer.shadowOpacity = 0.22
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 8
+        button.alpha = 0.85
         return button
     }()
 
@@ -120,11 +141,44 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
         view.addSubview(mapTypeButton)
         NSLayoutConstraint.activate([
             mapTypeButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: 18),
-            mapTypeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -18),
+            mapTypeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -25),
             mapTypeButton.widthAnchor.constraint(equalToConstant: 44),
             mapTypeButton.heightAnchor.constraint(equalToConstant: 44)
         ])
         mapTypeButton.addTarget(self, action: #selector(showMapTypeMenu), for: .touchUpInside)
+        mapTypeButton.addTarget(self, action: #selector(buttonTouchDown(_:)), for: .touchDown)
+        mapTypeButton.addTarget(self, action: #selector(buttonTouchUp(_:)), for: [.touchUpInside, .touchDragExit, .touchCancel])
+
+        view.addSubview(locateMeButton)
+        NSLayoutConstraint.activate([
+            locateMeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            locateMeButton.bottomAnchor.constraint(equalTo: mapTypeButton.topAnchor, constant: -16),
+            locateMeButton.widthAnchor.constraint(equalToConstant: 44),
+            locateMeButton.heightAnchor.constraint(equalToConstant: 44)
+        ])
+        locateMeButton.addTarget(self, action: #selector(focusMapOnUserLocationButtonTapped), for: .touchUpInside)
+        locateMeButton.addTarget(self, action: #selector(buttonTouchDown(_:)), for: .touchDown)
+        locateMeButton.addTarget(self, action: #selector(buttonTouchUp(_:)), for: [.touchUpInside, .touchDragExit, .touchCancel])
+
+        tableStyle()
+    }
+
+    @objc func buttonTouchDown(_ sender: UIButton) {
+        UIView.animate(withDuration: 0.15) {
+            sender.alpha = 0.6
+            sender.transform = CGAffineTransform(scaleX: 0.94, y: 0.94)
+        }
+    }
+    @objc func buttonTouchUp(_ sender: UIButton) {
+        UIView.animate(withDuration: 0.18) {
+            sender.alpha = 0.85
+            sender.transform = .identity
+        }
+    }
+
+    // Кнопка "Найти меня"
+    @objc func focusMapOnUserLocationButtonTapped() {
+        focusMapOnUserLocation(animated: true)
     }
 
     // Вспомогательный метод — приблизить к пользователю
@@ -136,10 +190,10 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
         }
     }
 
-    // Автофокус после получения локации — только при первом появлении
-    func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
-        focusMapOnUserLocation()
-    }
+//    // Автофокус после получения локации — только при первом появлении
+//    func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
+//        focusMapOnUserLocation()
+//    }
 
     // --- MARK: - Floating Menu (переопределять в дочерних) ---
     func setupFloatingMenu() {
@@ -211,10 +265,50 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        // Переопредели в дочернем классе!
         let cell = tableView.dequeueReusableCell(withIdentifier: "BaseCell") ?? UITableViewCell(style: .subtitle, reuseIdentifier: "BaseCell")
+        let cornerRadius: CGFloat = 22
+
+        // Цвет “трубы” (можно подогнать под любую тему)
+        let pipeColor = UIColor.systemGray6.withAlphaComponent(0.86)
+        let pipeBorderColor = UIColor.systemGray4.withAlphaComponent(0.14)
+
+        // Фон трубы
+        let pipeView = UIView(frame: cell.bounds)
+        pipeView.backgroundColor = pipeColor
+        pipeView.layer.cornerRadius = cornerRadius
+        pipeView.layer.masksToBounds = false
+        pipeView.layer.shadowColor = UIColor.black.withAlphaComponent(0.10).cgColor
+        pipeView.layer.shadowOpacity = 0.6
+        pipeView.layer.shadowOffset = CGSize(width: 0, height: 2)
+        pipeView.layer.shadowRadius = 8
+
+        // Лёгкие "швы" (имитируем разрез трубы между ячейками)
+        let border = UIView(frame: CGRect(x: 0, y: pipeView.frame.height-1, width: pipeView.frame.width, height: 2))
+        border.backgroundColor = pipeBorderColor
+        border.autoresizingMask = [.flexibleWidth, .flexibleTopMargin]
+        pipeView.addSubview(border)
+
+        cell.backgroundView = pipeView
+
+        // Контент — как обычно, но выравниваем чуть правее/левее для ощущения "внутри трубы"
         cell.textLabel?.text = "Title"
+        cell.textLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+        cell.textLabel?.textColor = UIColor.label
+        cell.textLabel?.frame.origin.x += 16
         cell.detailTextLabel?.text = "Subtitle"
+        cell.detailTextLabel?.textColor = UIColor.secondaryLabel
+        cell.detailTextLabel?.frame.origin.x += 16
+
+        // Убираем стандартный фон и разделители
+        cell.backgroundColor = .clear
+        tableView.separatorStyle = .none
+
+        // Selected BG — делаем прозрачным, чтобы не мешал
+        let selView = UIView()
+        selView.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.08)
+        selView.layer.cornerRadius = cornerRadius
+        cell.selectedBackgroundView = selView
+
         return cell
     }
 
@@ -269,6 +363,19 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
     // Переопредели в наследнике — например, переход к другому экрану
     func handleLongPressOnItem(_ item: Item) {
         // В базовом классе — пусто или показать UIAlert, если универсально
+    }
+
+    func tableStyle() {
+        // --- Стилизация таблицы ---
+            tableView.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.42) // Прозрачный фон
+            tableView.separatorStyle = .none // Без стандартных разделителей
+
+            // Если нужен эффект blur за таблицей (по желанию):
+            let blurEffect = UIBlurEffect(style: .systemMaterial)
+            let blurView = UIVisualEffectView(effect: blurEffect)
+            blurView.frame = tableView.bounds
+            blurView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            tableView.backgroundView = blurView
     }
 
     // --- MARK: - Универсальный swipe для редактирования и удаления ---
