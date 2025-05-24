@@ -21,6 +21,35 @@ class BoilerHouseDetailViewController: UIViewController, UITableViewDataSource, 
     private var tableViewTopConstraint: NSLayoutConstraint?
     private var isTableViewHidden = false
 
+    // --- Floating меню ---
+    private let floatingButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.backgroundColor = .systemBlue
+        button.setImage(UIImage(systemName: "plus"), for: .normal)
+        button.tintColor = .white
+        button.layer.cornerRadius = 21
+        button.layer.shadowOpacity = 0.3
+        button.layer.shadowOffset = CGSize(width: 0, height: 4)
+        button.layer.shadowRadius = 6
+        button.alpha = 0.4
+        return button
+    }()
+
+    private let mapTypeButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "map.fill"), for: .normal)
+        button.tintColor = .label
+        button.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.92)
+        button.layer.cornerRadius = 22
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.08
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 6
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
     // MARK: - Инициализация с котельной
     init(boilerHouse: BoilerHouse) {
         self.boilerHouse = boilerHouse
@@ -49,6 +78,13 @@ class BoilerHouseDetailViewController: UIViewController, UITableViewDataSource, 
         let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleMapLongPress(_:)))
         longPressRecognizer.minimumPressDuration = 0.5
         mapView.addGestureRecognizer(longPressRecognizer)
+
+        // Tap для показа/скрытия списка домов
+        let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleMapTap(_:)))
+        tapRecognizer.cancelsTouchesInView = false
+        mapView.addGestureRecognizer(tapRecognizer)
+
+        setupFloatingMenu()
     }
 
     // MARK: - UI Setup
@@ -75,43 +111,24 @@ class BoilerHouseDetailViewController: UIViewController, UITableViewDataSource, 
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "HouseCell")
         tableView.tableFooterView = UIView()
 
-        let addButton = UIButton(type: .system)
-        addButton.setTitle("Добавить дом", for: .normal)
-        addButton.addTarget(self, action: #selector(addHouseByCoordinates), for: .touchUpInside)
-        addButton.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(addButton)
+        // Плавающая кнопка
+        view.addSubview(floatingButton)
         NSLayoutConstraint.activate([
-            addButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            addButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8)
+            floatingButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            floatingButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: -24),
+            floatingButton.widthAnchor.constraint(equalToConstant: 44),
+            floatingButton.heightAnchor.constraint(equalToConstant: 44)
         ])
 
-        let mapTypeControl = UISegmentedControl(items: ["Стандарт", "Спутник", "Гибрид"])
-        mapTypeControl.selectedSegmentIndex = 0
-        mapTypeControl.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(mapTypeControl)
+        // Кнопка смены типа карты
+        view.addSubview(mapTypeButton)
         NSLayoutConstraint.activate([
-            mapTypeControl.topAnchor.constraint(equalTo: view.topAnchor, constant: 80),
-            mapTypeControl.heightAnchor.constraint(equalToConstant: 30),
-            mapTypeControl.widthAnchor.constraint(equalToConstant: 260),
-            mapTypeControl.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+            mapTypeButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: 18),
+            mapTypeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -18),
+            mapTypeButton.widthAnchor.constraint(equalToConstant: 44),
+            mapTypeButton.heightAnchor.constraint(equalToConstant: 44)
         ])
-        mapTypeControl.addTarget(self, action: #selector(mapTypeChanged(_:)), for: .valueChanged)
-
-        let toggleListButton = UIButton(type: .system)
-        toggleListButton.setTitle("Показать список", for: .normal)
-        toggleListButton.translatesAutoresizingMaskIntoConstraints = false
-        toggleListButton.backgroundColor = .white
-        toggleListButton.layer.cornerRadius = 8
-        toggleListButton.layer.shadowOpacity = 0.2
-        toggleListButton.layer.shadowOffset = CGSize(width: 0, height: 2)
-        toggleListButton.addTarget(self, action: #selector(toggleListVisibility), for: .touchUpInside)
-        view.addSubview(toggleListButton)
-        NSLayoutConstraint.activate([
-            toggleListButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            toggleListButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-            toggleListButton.widthAnchor.constraint(equalToConstant: 140),
-            toggleListButton.heightAnchor.constraint(equalToConstant: 44)
-        ])
+        mapTypeButton.addTarget(self, action: #selector(showMapTypeMenu), for: .touchUpInside)
 
         tableViewHeightConstraint = tableView.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.4)
         tableViewHeightConstraint?.isActive = true
@@ -120,6 +137,24 @@ class BoilerHouseDetailViewController: UIViewController, UITableViewDataSource, 
         let center = CLLocationCoordinate2D(latitude: boilerHouse.latitude, longitude: boilerHouse.longitude)
         let region = MKCoordinateRegion(center: center, latitudinalMeters: 3000, longitudinalMeters: 3000)
         mapView.setRegion(region, animated: false)
+    }
+
+    private func setupFloatingMenu() {
+        floatingButton.showsMenuAsPrimaryAction = true
+        floatingButton.menu = UIMenu(title: "", children: [
+            UIAction(title: "Добавить дом", image: UIImage(systemName: "plus")) { [weak self] _ in
+                self?.addHouseByCoordinates()
+            },
+            UIAction(title: "Импорт", image: UIImage(systemName: "square.and.arrow.down")) { [weak self] _ in
+                // Импорт
+            },
+            UIAction(title: "Экспорт", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
+                // Экспорт
+            },
+            UIAction(title: "Удалить все", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                // Удалить все
+            }
+        ])
     }
 
     // MARK: - Загрузка и добавление домов
@@ -259,14 +294,30 @@ class BoilerHouseDetailViewController: UIViewController, UITableViewDataSource, 
         }
     }
 
-    // MARK: - MKMapViewDelegate
-    @objc private func mapTypeChanged(_ sender: UISegmentedControl) {
-        switch sender.selectedSegmentIndex {
-        case 0: mapView.mapType = .standard
-        case 1: mapView.mapType = .satellite
-        case 2: mapView.mapType = .hybrid
-        default: break
+    // MARK: - Изменение режима карты
+    @objc private func showMapTypeMenu() {
+        let alert = UIAlertController(title: "Тип карты", message: nil, preferredStyle: .actionSheet)
+        let types: [(String, MKMapType)] = [
+            ("Стандарт", .standard),
+            ("Спутник", .satellite),
+            ("Гибрид", .hybrid)
+        ]
+        for (title, type) in types {
+            let action = UIAlertAction(title: title, style: .default) { _ in
+                self.mapView.mapType = type
+            }
+            if mapView.mapType == type {
+                action.setValue(true, forKey: "checked")
+            }
+            alert.addAction(action)
         }
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel, handler: nil))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = view
+            popover.sourceRect = mapTypeButton.frame
+        }
+        present(alert, animated: true)
     }
 
     // MARK: - Показать/скрыть список
@@ -285,8 +336,11 @@ class BoilerHouseDetailViewController: UIViewController, UITableViewDataSource, 
         UIView.animate(withDuration: 0.3) {
             self.view.layoutIfNeeded()
         }
-        let newTitle = isTableViewHidden ? "Показать список" : "Скрыть список"
-        (view.subviews.first(where: { $0 is UIButton && ($0 as! UIButton).currentTitle?.contains("список") == true }) as? UIButton)?.setTitle(newTitle, for: .normal)
+    }
+
+    // Tap по карте
+    @objc private func handleMapTap(_ gesture: UITapGestureRecognizer) {
+        toggleListVisibility()
     }
 
     // MARK: - TableView DataSource
