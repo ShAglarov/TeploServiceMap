@@ -1,0 +1,185 @@
+//
+//  File.swift
+//  TeploserviceMap
+//
+//  Created by Murad Tataev on 23.05.2025.
+//
+
+import UIKit
+import MapKit
+import CoreData
+
+class BoilerHouseListViewController: BaseMapListViewController<BoilerHouse> {
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        title = "Котельные"
+        loadItems()
+        addBoilerHousesToMap()
+    }
+
+    // MARK: - Загрузка котельных
+    override func loadItems() {
+        let request: NSFetchRequest<BoilerHouse> = BoilerHouse.fetchRequest()
+        do {
+            items = try PersistenceController.shared.context.fetch(request)
+            tableView.reloadData()
+            addBoilerHousesToMap()
+        } catch {
+            print("Ошибка загрузки котельных: \(error)")
+        }
+    }
+
+    // MARK: - Добавить котельную
+    override func showAddItemAlert() {
+        let alert = UIAlertController(title: "Добавить котельную", message: "Введите название и координаты", preferredStyle: .alert)
+        alert.addTextField { $0.placeholder = "Название" }
+        alert.addTextField { $0.placeholder = "Широта" }
+        alert.addTextField { $0.placeholder = "Долгота" }
+        alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { _ in
+            let fields = alert.textFields!
+            let name = fields[0].text ?? ""
+            let latitude = Double(fields[1].text ?? "") ?? 0
+            let longitude = Double(fields[2].text ?? "") ?? 0
+            let context = PersistenceController.shared.context
+            let newBoiler = BoilerHouse(context: context)
+            newBoiler.name = name
+            newBoiler.latitude = latitude
+            newBoiler.longitude = longitude
+            do {
+                try context.save()
+                self.loadItems()
+                self.addBoilerHousesToMap()
+            } catch {
+                print("Ошибка сохранения котельной: \(error)")
+            }
+        }))
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        present(alert, animated: true)
+    }
+
+    // MARK: - Отображение котельных на карте
+    func addBoilerHousesToMap() {
+        mapView.removeAnnotations(mapView.annotations)
+        for item in items {
+            let boiler = item as! BoilerHouse
+            guard boiler.latitude != 0, boiler.longitude != 0 else { continue }
+            let annotation = MKPointAnnotation()
+            annotation.title = boiler.name ?? "Без названия"
+            annotation.coordinate = CLLocationCoordinate2D(latitude: boiler.latitude, longitude: boiler.longitude)
+            mapView.addAnnotation(annotation)
+        }
+        if !items.isEmpty {
+            mapView.showAnnotations(mapView.annotations, animated: false)
+        }
+    }
+
+    // MARK: - UITableViewDataSource (ячейка)
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "BaseCell") ?? UITableViewCell(style: .subtitle, reuseIdentifier: "BaseCell")
+        let boiler = items[indexPath.row] as! BoilerHouse
+        cell.textLabel?.text = boiler.name ?? "Без названия"
+        cell.detailTextLabel?.text = String(format: "Lat: %.4f, Lon: %.4f", boiler.latitude, boiler.longitude)
+        return cell
+    }
+
+    // MARK: - Свайп действия: Редактирование и удаление
+    override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let edit = UIContextualAction(style: .normal, title: "Редакт.") { [weak self] (action, view, completionHandler) in
+            guard let self = self else { return }
+            let boiler = self.items[indexPath.row] as! BoilerHouse
+            let alert = UIAlertController(title: "Редактировать котельную", message: "Измените название или координаты", preferredStyle: .alert)
+            alert.addTextField { $0.text = boiler.name }
+            alert.addTextField { $0.text = boiler.latitude == 0 ? "" : "\(boiler.latitude)" }
+            alert.addTextField { $0.text = boiler.longitude == 0 ? "" : "\(boiler.longitude)" }
+            alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { _ in
+                let fields = alert.textFields!
+                boiler.name = fields[0].text ?? ""
+                boiler.latitude = Double(fields[1].text ?? "") ?? 0
+                boiler.longitude = Double(fields[2].text ?? "") ?? 0
+                do {
+                    try PersistenceController.shared.context.save()
+                    self.loadItems()
+                    self.addBoilerHousesToMap()
+                } catch {
+                    print("Ошибка сохранения: \(error)")
+                }
+            }))
+            alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+            self.present(alert, animated: true)
+            completionHandler(true)
+        }
+        edit.backgroundColor = .orange
+
+        let delete = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] (action, view, completionHandler) in
+            guard let self = self else { return }
+            let context = PersistenceController.shared.context
+            let toDelete = self.items[indexPath.row]
+            context.delete(toDelete)
+            do {
+                try context.save()
+                self.loadItems()
+                self.addBoilerHousesToMap()
+            } catch {
+                print("Ошибка удаления котельной: \(error)")
+            }
+            completionHandler(true)
+        }
+
+        return UISwipeActionsConfiguration(actions: [delete, edit])
+    }
+
+    // MARK: - Tap по строке таблицы: Перемещение на карте + выделение аннотации
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let boiler = items[indexPath.row] as! BoilerHouse
+        let coord = CLLocationCoordinate2D(latitude: boiler.latitude, longitude: boiler.longitude)
+        let region = MKCoordinateRegion(center: coord, span: MKCoordinateSpan(latitudeDelta: 0.0010, longitudeDelta: 0.0010))
+        mapView.setRegion(region, animated: true)
+
+        // Выделяем аннотацию на карте
+        if let annotation = mapView.annotations.first(where: { ann in
+            ann.coordinate.latitude == boiler.latitude && ann.coordinate.longitude == boiler.longitude
+        }) {
+            mapView.selectAnnotation(annotation, animated: true)
+        }
+        tableView.deselectRow(at: indexPath, animated: true)
+    }
+
+    // MARK: - Долгое нажатие по строке: Переход к списку домов
+    override func handleTableLongPress(_ gesture: UILongPressGestureRecognizer) {
+        let point = gesture.location(in: tableView)
+        guard let indexPath = tableView.indexPathForRow(at: point),
+              gesture.state == .began else { return }
+
+        let selectedBoiler = items[indexPath.row] as! BoilerHouse
+        let detailVC = BoilerHouseDetailViewController(boilerHouse: selectedBoiler)
+        navigationController?.pushViewController(detailVC, animated: true)
+    }
+
+    // MARK: - Добавление котельной по долгому нажатию на карту
+    override func handleMapLongPress(_ gesture: UILongPressGestureRecognizer) {
+        if gesture.state == .began {
+            let touchPoint = gesture.location(in: mapView)
+            let coord = mapView.convert(touchPoint, toCoordinateFrom: mapView)
+            let alert = UIAlertController(title: "Новая котельная", message: "Введите название котельной", preferredStyle: .alert)
+            alert.addTextField { $0.placeholder = "Название" }
+            alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { _ in
+                let name = alert.textFields?.first?.text ?? ""
+                let context = PersistenceController.shared.context
+                let newBoiler = BoilerHouse(context: context)
+                newBoiler.name = name
+                newBoiler.latitude = coord.latitude
+                newBoiler.longitude = coord.longitude
+                do {
+                    try context.save()
+                    self.loadItems()
+                    self.addBoilerHousesToMap()
+                } catch {
+                    print("Ошибка сохранения котельной: \(error)")
+                }
+            }))
+            alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+            present(alert, animated: true)
+        }
+    }
+}
