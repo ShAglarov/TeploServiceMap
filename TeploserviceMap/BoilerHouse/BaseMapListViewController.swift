@@ -10,7 +10,7 @@ import MapKit
 import CoreData
 
 // MARK: - Базовый класс для любого экрана "Карта + список"
-class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITableViewDataSource, UITableViewDelegate, MKMapViewDelegate {
+class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITableViewDataSource, UITableViewDelegate, MKMapViewDelegate, CLLocationManagerDelegate {
 
     // --- Публичные свойства для дочерних классов ---
     let mapView = MKMapView()
@@ -41,26 +41,6 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
-// Кнопка скрытия и показа таблицы
-//    let toggleListButton: UIButton = {
-//        let button = UIButton(type: .system)
-//        button.translatesAutoresizingMaskIntoConstraints = false
-//        button.backgroundColor = .white
-//        button.layer.cornerRadius = 22
-//        button.layer.shadowOpacity = 0.3
-//        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-//        button.setImage(UIImage(systemName: "list.bullet"), for: .normal)
-//        button.tintColor = .systemBlue
-//        return button
-//    }()
-//    view.addSubview(toggleListButton)
-//    NSLayoutConstraint.activate([
-//        toggleListButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-//        toggleListButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -15),
-//        toggleListButton.widthAnchor.constraint(equalToConstant: 56),
-//        toggleListButton.heightAnchor.constraint(equalToConstant: 56)
-//    ])
-//    toggleListButton.addTarget(self, action: #selector(toggleListVisibility), for: .touchUpInside)
 
     // --- Приватные свойства ---
     var items: [Item] = []
@@ -68,10 +48,19 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
     var tableViewHeightConstraint: NSLayoutConstraint?
     var mapViewHeightConstraint: NSLayoutConstraint?
     var tableViewTopConstraint: NSLayoutConstraint?
+    
+    // Менеджер локации
+       private let locationManager = CLLocationManager()
 
     // --- MARK: - Жизненный цикл ---
     override func viewDidLoad() {
         super.viewDidLoad()
+        // Показываем текущее местоположение пользователя на карте
+        mapView.showsUserLocation = true
+
+        // Запрашиваем разрешение на использование геолокации
+        locationManager.delegate = self
+        locationManager.requestWhenInUseAuthorization()
         view.backgroundColor = .systemBackground
         setupUI()
         setupFloatingMenu()
@@ -79,7 +68,7 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
         tableView.dataSource = self
         tableView.delegate = self
 
-        // Добавляем tap для скрытия/отображения таблицы
+        // Tap для скрытия/отображения таблицы
         let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleMapTap(_:)))
         tapRecognizer.cancelsTouchesInView = false
         mapView.addGestureRecognizer(tapRecognizer)
@@ -88,6 +77,7 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleTableLongPress(_:)))
         tableView.addGestureRecognizer(longPress)
 
+        // Долгое нажатие по карте (для добавления точки, реализуется в дочернем)
         let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleMapLongPress(_:)))
         longPressRecognizer.minimumPressDuration = 0.5
         mapView.addGestureRecognizer(longPressRecognizer)
@@ -135,6 +125,20 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
             mapTypeButton.heightAnchor.constraint(equalToConstant: 44)
         ])
         mapTypeButton.addTarget(self, action: #selector(showMapTypeMenu), for: .touchUpInside)
+    }
+
+    // Вспомогательный метод — приблизить к пользователю
+    func focusMapOnUserLocation(animated: Bool = true) {
+        let userCoord = mapView.userLocation.coordinate
+        if CLLocationCoordinate2DIsValid(userCoord) {
+            let region = MKCoordinateRegion(center: userCoord, span: MKCoordinateSpan(latitudeDelta: 0.002, longitudeDelta: 0.002))
+            mapView.setRegion(region, animated: animated)
+        }
+    }
+
+    // Автофокус после получения локации — только при первом появлении
+    func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
+        focusMapOnUserLocation()
     }
 
     // --- MARK: - Floating Menu (переопределять в дочерних) ---
@@ -196,7 +200,7 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
         toggleListVisibility()
     }
 
-    // --- В BaseMapListViewController ---
+    // --- MARK: - Долгое нажатие по карте (реализуется в дочерних) ---
     @objc func handleMapLongPress(_ gesture: UILongPressGestureRecognizer) {
         // Пустая реализация — дочерние классы реализуют свою логику
     }
@@ -215,16 +219,20 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
     }
 
     // --- MARK: - UITableViewDelegate (переопределять в дочерних) ---
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {}
-
-    // --- MARK: - Свайп редактирования/удаления (переопределять в дочерних) ---
-    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-        // Дочерние классы реализуют нужные действия
-        return nil
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let item = items[indexPath.row]
+        focusMapOnItem(item)
+        tableView.deselectRow(at: indexPath, animated: true)
     }
 
-    // --- MARK: - Долгое нажатие по таблице (можно переопределять) ---
-    @objc func handleTableLongPress(_ gesture: UILongPressGestureRecognizer) {}
+    // MARK: - TableView: долгий тап (универсально)
+    @objc func handleTableLongPress(_ gesture: UILongPressGestureRecognizer) {
+        let point = gesture.location(in: tableView)
+        guard let indexPath = tableView.indexPathForRow(at: point),
+              gesture.state == .began else { return }
+        let item = items[indexPath.row]
+        handleLongPressOnItem(item)
+    }
 
     // --- MARK: - MKMapViewDelegate (можно расширять в дочерних) ---
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
@@ -238,5 +246,54 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
 
     func showAddItemAlert() {
         // Переопредели для показа алерта добавления
+    }
+
+    // --- MARK: - Для swipe (переопределять в дочерних) ---
+    func configureEditAlert(for item: Item, completion: @escaping () -> Void) -> UIAlertController {
+        fatalError("configureEditAlert(for:completion:) must be overridden in subclass")
+    }
+    func handleDelete(item: Item, completion: @escaping () -> Void) {
+        fatalError("handleDelete(item:completion:) must be overridden in subclass")
+    }
+
+    // --- MARK: - Заглушка для аннотаций (чтобы не было ошибок) ---
+    func reloadAnnotations() {
+        // Переопредели в дочернем, чтобы добавить свои аннотации на карту
+    }
+
+    // MARK: - TableView: выделение на карте по строке (универсально)
+    func focusMapOnItem(_ item: Item) {
+        // Заглушка — реализовать в дочернем, если у Item нет lat/lon
+    }
+
+    // Переопредели в наследнике — например, переход к другому экрану
+    func handleLongPressOnItem(_ item: Item) {
+        // В базовом классе — пусто или показать UIAlert, если универсально
+    }
+
+    // --- MARK: - Универсальный swipe для редактирования и удаления ---
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let item = items[indexPath.row]
+        let edit = UIContextualAction(style: .normal, title: "Редакт.") { [weak self] (action, view, completionHandler) in
+            guard let self = self else { return }
+            let alert = self.configureEditAlert(for: item) {
+                self.loadItems()
+                self.reloadAnnotations()
+            }
+            self.present(alert, animated: true)
+            completionHandler(true)
+        }
+        edit.backgroundColor = UIColor.orange
+
+        let delete = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] (action, view, completionHandler) in
+            guard let self = self else { return }
+            self.handleDelete(item: item) {
+                self.loadItems()
+                self.reloadAnnotations()
+            }
+            completionHandler(true)
+        }
+
+        return UISwipeActionsConfiguration(actions: [delete, edit])
     }
 }

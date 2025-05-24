@@ -25,7 +25,7 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
     override func viewDidLoad() {
         super.viewDidLoad()
         loadItems()
-        addSavedPointsToMap()
+        self.focusMapOnUserLocation()
     }
 
     // MARK: - Загрузка домов котельной
@@ -35,9 +35,23 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
         do {
             items = try PersistenceController.shared.context.fetch(request)
             tableView.reloadData()
-            addSavedPointsToMap()
+            reloadAnnotations()
         } catch {
             print("Ошибка загрузки домов котельной: \(error)")
+        }
+    }
+
+    // MARK: - Аннотации на карте
+    override func reloadAnnotations() {
+        mapView.removeAnnotations(mapView.annotations)
+        for point in items {
+            let annotation = MKPointAnnotation()
+            annotation.title = point.name
+            annotation.coordinate = point.coordinate
+            mapView.addAnnotation(annotation)
+        }
+        if !items.isEmpty {
+            mapView.showAnnotations(mapView.annotations, animated: false)
         }
     }
 
@@ -79,7 +93,6 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
             do {
                 try context.save()
                 self.loadItems()
-                self.addSavedPointsToMap()
             } catch {
                 print("Ошибка сохранения дома: \(error)")
             }
@@ -88,103 +101,80 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
         present(alert, animated: true)
     }
 
-    // MARK: - Отображение домов на карте
-    func addSavedPointsToMap() {
-        mapView.removeAnnotations(mapView.annotations)
-        for item in items {
-            guard let point = item as? SavedLocation else { continue }
-            let annotation = MKPointAnnotation()
-            annotation.title = point.name
-            annotation.coordinate = point.coordinate
-            mapView.addAnnotation(annotation)
-        }
-        if !items.isEmpty {
-            mapView.showAnnotations(mapView.annotations, animated: false)
+    // MARK: - Редактирование дома (универсальный для swipe)
+    override func configureEditAlert(for item: SavedLocation, completion: @escaping () -> Void) -> UIAlertController {
+        let alert = UIAlertController(title: "Редактировать дом", message: "Измените данные", preferredStyle: .alert)
+        alert.addTextField { $0.text = item.name }
+        alert.addTextField { $0.text = item.latitude == 0 ? "" : "\(item.latitude)" }
+        alert.addTextField { $0.text = item.longitude == 0 ? "" : "\(item.longitude)" }
+        alert.addTextField { $0.text = item.yearBuilt == 0 ? "" : "\(item.yearBuilt)" }
+        alert.addTextField { $0.text = item.totalArea == 0 ? "" : "\(item.totalArea)" }
+        alert.addTextField { $0.text = item.floors == 0 ? "" : "\(item.floors)" }
+        alert.addTextField { $0.text = item.rooms == 0 ? "" : "\(item.rooms)" }
+        alert.addTextField { $0.text = item.accounts == 0 ? "" : "\(item.accounts)" }
+        alert.addTextField { $0.text = item.managementCompany }
+        alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { _ in
+            let fields = alert.textFields!
+            item.name = fields[0].text ?? ""
+            item.latitude = Double(fields[1].text ?? "") ?? 0
+            item.longitude = Double(fields[2].text ?? "") ?? 0
+            item.yearBuilt = Int32(fields[3].text ?? "") ?? 0
+            item.totalArea = Double(fields[4].text ?? "") ?? 0
+            item.floors = Int32(fields[5].text ?? "") ?? 0
+            item.rooms = Int32(fields[6].text ?? "") ?? 0
+            item.accounts = Int32(fields[7].text ?? "") ?? 0
+            item.managementCompany = fields[8].text ?? ""
+            do {
+                try PersistenceController.shared.context.save()
+                completion()
+            } catch {
+                print("Ошибка сохранения дома: \(error)")
+            }
+        }))
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        return alert
+    }
+
+    // MARK: - Удаление дома (универсальный для swipe)
+    override func handleDelete(item: SavedLocation, completion: @escaping () -> Void) {
+        let context = PersistenceController.shared.context
+        context.delete(item)
+        do {
+            try context.save()
+            completion()
+        } catch {
+            print("Ошибка удаления дома: \(error)")
         }
     }
 
-    // MARK: - UITableViewDataSource
+    // MARK: - Ячейка таблицы
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "BaseCell") ??
-            UITableViewCell(style: .subtitle, reuseIdentifier: "BaseCell")
-        guard let point = items[indexPath.row] as? SavedLocation else { return cell }
+        let cell = tableView.dequeueReusableCell(withIdentifier: "BaseCell") ?? UITableViewCell(style: .subtitle, reuseIdentifier: "BaseCell")
+        let point = items[indexPath.row]
         cell.textLabel?.text = point.name
         cell.detailTextLabel?.text = String(format: "Lat: %.4f, Lon: %.4f", point.latitude, point.longitude)
         return cell
     }
 
-    // MARK: - Редактирование и удаление свайпом
-    override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-        let edit = UIContextualAction(style: .normal, title: "Редакт.") { [weak self] (action, view, completionHandler) in
-            guard let self = self else { return }
-            guard let point = self.items[indexPath.row] as? SavedLocation else { return }
-            let alert = UIAlertController(title: "Редактировать дом", message: "Измените данные", preferredStyle: .alert)
-            alert.addTextField { $0.text = point.name }
-            alert.addTextField { $0.text = "\(point.latitude)" }
-            alert.addTextField { $0.text = "\(point.longitude)" }
-            alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { _ in
-                let fields = alert.textFields!
-                point.name = fields[0].text ?? ""
-                point.latitude = Double(fields[1].text ?? "") ?? 0
-                point.longitude = Double(fields[2].text ?? "") ?? 0
-                do {
-                    try PersistenceController.shared.context.save()
-                    self.loadItems()
-                    self.addSavedPointsToMap()
-                } catch {
-                    print("Ошибка сохранения: \(error)")
-                }
-            }))
-            alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-            self.present(alert, animated: true)
-            completionHandler(true)
-        }
-        edit.backgroundColor = .orange
-
-        let delete = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] (action, view, completionHandler) in
-            guard let self = self else { return }
-            let context = PersistenceController.shared.context
-            let toDelete = self.items[indexPath.row]
-            context.delete(toDelete)
-            do {
-                try context.save()
-                self.loadItems()
-                self.addSavedPointsToMap()
-            } catch {
-                print("Ошибка удаления дома: \(error)")
-            }
-            completionHandler(true)
-        }
-
-        return UISwipeActionsConfiguration(actions: [delete, edit])
-    }
-
-    // MARK: - Tap по строке таблицы: центрирование карты + выделение аннотации
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        guard let point = items[indexPath.row] as? SavedLocation else { return }
-        let region = MKCoordinateRegion(center: point.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.0010, longitudeDelta: 0.0010))
+    // MARK: - Выделение на карте по строке
+    override func focusMapOnItem(_ item: SavedLocation) {
+        let region = MKCoordinateRegion(center: item.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.0010, longitudeDelta: 0.0010))
         mapView.setRegion(region, animated: true)
         if let annotation = mapView.annotations.first(where: { ann in
-            ann.coordinate.latitude == point.latitude && ann.coordinate.longitude == point.longitude
+            ann.coordinate.latitude == item.latitude && ann.coordinate.longitude == item.longitude
         }) {
             mapView.selectAnnotation(annotation, animated: true)
         }
-        tableView.deselectRow(at: indexPath, animated: true)
     }
 
-    // MARK: - Долгое нажатие по строке: показать подробности
-    override func handleTableLongPress(_ gesture: UILongPressGestureRecognizer) {
-        let point = gesture.location(in: tableView)
-        guard let indexPath = tableView.indexPathForRow(at: point),
-              gesture.state == .began else { return }
-
-        guard let house = items[indexPath.row] as? SavedLocation else { return }
-        let alert = UIAlertController(title: house.name, message: "Lat: \(house.latitude)\nLon: \(house.longitude)", preferredStyle: .alert)
+    // MARK: - Long Press на строке: показать подробности
+    override func handleLongPressOnItem(_ item: SavedLocation) {
+        let alert = UIAlertController(title: item.name, message: "Lat: \(item.latitude)\nLon: \(item.longitude)", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "ОК", style: .default))
         present(alert, animated: true)
     }
 
-    // MARK: - Добавление дома по долгому нажатию на карту
+    // MARK: - Долгое нажатие по карте — добавить дом
     override func handleMapLongPress(_ gesture: UILongPressGestureRecognizer) {
         if gesture.state == .began {
             let touchPoint = gesture.location(in: mapView)
@@ -221,7 +211,6 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
                 do {
                     try context.save()
                     self.loadItems()
-                    self.addSavedPointsToMap()
                 } catch {
                     print("Ошибка сохранения дома: \(error)")
                 }
@@ -230,7 +219,4 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
             present(alert, animated: true)
         }
     }
-
-    // MARK: - Карточка аннотаций (если нужно, можешь кастомизировать)
-    // override func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? { ... }
 }
