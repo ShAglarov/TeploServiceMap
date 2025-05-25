@@ -28,12 +28,22 @@ class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource
 
 
     private func exportPointsToJSON() {
-        let exportArray = savedPoints.map { ExportedPoint(name: $0.name, latitude: $0.latitude, longitude: $0.longitude) }
+        let exportArray = savedPoints.map {
+            ExportedPoint(
+                name: $0.name,
+                latitude: $0.latitude,
+                longitude: $0.longitude,
+                yearBuilt: $0.yearBuilt == 0 ? nil : Int($0.yearBuilt),
+                totalArea: $0.totalArea == 0 ? nil : $0.totalArea,
+                floors: $0.floors == 0 ? nil : Int($0.floors),
+                rooms: $0.rooms == 0 ? nil : Int($0.rooms),
+                accounts: $0.accounts == 0 ? nil : Int($0.accounts),
+                managementCompany: $0.managementCompany
+            )
+        }
         do {
             let data = try JSONEncoder().encode(exportArray)
             try data.write(to: jsonFileURL)
-            print("Экспортировано в:", jsonFileURL)
-            // Можно сразу вызвать шаринг (например, открыть share sheet)
             let activityVC = UIActivityViewController(activityItems: [jsonFileURL], applicationActivities: nil)
             present(activityVC, animated: true)
         } catch {
@@ -53,7 +63,6 @@ class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource
             let data = try Data(contentsOf: jsonFileURL)
             let imported = try JSONDecoder().decode([ExportedPoint].self, from: data)
             let context = PersistenceController.shared.context
-            // Удаляем старые (или меняй под merge)
             for point in savedPoints {
                 context.delete(point)
             }
@@ -62,6 +71,12 @@ class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource
                 newPoint.name = e.name
                 newPoint.latitude = e.latitude
                 newPoint.longitude = e.longitude
+                newPoint.yearBuilt = Int32(e.yearBuilt ?? 0)
+                newPoint.totalArea = e.totalArea ?? 0
+                newPoint.floors = Int32(e.floors ?? 0)
+                newPoint.rooms = Int32(e.rooms ?? 0)
+                newPoint.accounts = Int32(e.accounts ?? 0)
+                newPoint.managementCompany = e.managementCompany
             }
             try context.save()
             loadPoints()
@@ -81,9 +96,22 @@ class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource
         loadPoints()
         addSavedPointsToMap()
 
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleTableLongPress(_:)))
+        tableView.addGestureRecognizer(longPress)
+
         let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleMapLongPress(_:)))
         longPressRecognizer.minimumPressDuration = 0.5
         mapView.addGestureRecognizer(longPressRecognizer)
+
+    }
+
+    @objc private func handleTableLongPress(_ gesture: UILongPressGestureRecognizer) {
+        let point = gesture.location(in: tableView)
+        guard let indexPath = tableView.indexPathForRow(at: point),
+              gesture.state == .began else { return }
+
+        let selectedPoint = savedPoints[indexPath.row]
+        presentEditDetailsAlert(for: selectedPoint)
     }
 
     @objc private func mapTypeChanged(_ sender: UISegmentedControl) {
@@ -271,12 +299,28 @@ class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource
         }
     }
 
-    private func addPoint(name: String, latitude: Double, longitude: Double) {
+    private func addPoint(
+        name: String,
+        latitude: Double,
+        longitude: Double,
+        yearBuilt: Int32 = 0,
+        totalArea: Double = 0,
+        floors: Int32 = 0,
+        rooms: Int32 = 0,
+        accounts: Int32 = 0,
+        managementCompany: String = ""
+    ) {
         let context = PersistenceController.shared.context
         let newPoint = SavedLocation(context: context)
         newPoint.name = name
         newPoint.latitude = latitude
         newPoint.longitude = longitude
+        newPoint.yearBuilt = yearBuilt
+        newPoint.totalArea = totalArea
+        newPoint.floors = floors
+        newPoint.rooms = rooms
+        newPoint.accounts = accounts
+        newPoint.managementCompany = managementCompany
         saveContext()
         loadPoints()
     }
@@ -319,12 +363,34 @@ class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource
         if gesture.state == .began {
             let touchPoint = gesture.location(in: mapView)
             let coord = mapView.convert(touchPoint, toCoordinateFrom: mapView)
-            let alert = UIAlertController(title: "Новая точка", message: "Введите название точки", preferredStyle: .alert)
+            let alert = UIAlertController(title: "Новая точка", message: "Введите данные", preferredStyle: .alert)
             alert.addTextField { $0.placeholder = "Название" }
+            alert.addTextField { $0.placeholder = "Год постройки (например, 2003)" }
+            alert.addTextField { $0.placeholder = "Общая площадь (кв.м.)" }
+            alert.addTextField { $0.placeholder = "Этажей" }
+            alert.addTextField { $0.placeholder = "Помещений" }
+            alert.addTextField { $0.placeholder = "Лицевых счетов" }
+            alert.addTextField { $0.placeholder = "Управляющая организация" }
             alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { _ in
-                let nameInput = alert.textFields?.first?.text ?? ""
-                let pointName = nameInput.isEmpty ? "Точка \(self.savedPoints.count + 1)" : nameInput
-                self.addPoint(name: pointName, latitude: coord.latitude, longitude: coord.longitude)
+                let fields = alert.textFields!
+                let name = fields[0].text ?? ""
+                let yearBuilt = Int32(fields[1].text ?? "") ?? 0
+                let totalArea = Double(fields[2].text ?? "") ?? 0
+                let floors = Int32(fields[3].text ?? "") ?? 0
+                let rooms = Int32(fields[4].text ?? "") ?? 0
+                let accounts = Int32(fields[5].text ?? "") ?? 0
+                let managementCompany = fields[6].text ?? ""
+                self.addPoint(
+                    name: name,
+                    latitude: coord.latitude,
+                    longitude: coord.longitude,
+                    yearBuilt: yearBuilt,
+                    totalArea: totalArea,
+                    floors: floors,
+                    rooms: rooms,
+                    accounts: accounts,
+                    managementCompany: managementCompany
+                )
                 self.addSavedPointsToMap()
             }))
             alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
@@ -333,18 +399,38 @@ class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource
     }
 
     @objc private func addPointByCoordinates() {
-        let alert = UIAlertController(title: "Добавить точку", message: "Введите координаты и название", preferredStyle: .alert)
+        let alert = UIAlertController(title: "Добавить точку", message: "Введите данные", preferredStyle: .alert)
         alert.addTextField { $0.placeholder = "Название" }
         alert.addTextField { $0.placeholder = "Широта (Latitude)" }
         alert.addTextField { $0.placeholder = "Долгота (Longitude)" }
-        alert.addAction(UIAlertAction(title: "Добавить", style: .default, handler: { _ in
-            guard let fields = alert.textFields,
-                  let name = fields[0].text,
-                  let lat = Double(fields[1].text ?? ""),
-                  let lon = Double(fields[2].text ?? "") else {
-                return
-            }
-            self.addPoint(name: name, latitude: lat, longitude: lon)
+        alert.addTextField { $0.placeholder = "Год постройки (например, 2003)" }
+        alert.addTextField { $0.placeholder = "Общая площадь (кв.м.)" }
+        alert.addTextField { $0.placeholder = "Этажей" }
+        alert.addTextField { $0.placeholder = "Помещений" }
+        alert.addTextField { $0.placeholder = "Лицевых счетов" }
+        alert.addTextField { $0.placeholder = "Управляющая организация" }
+        alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { _ in
+            let fields = alert.textFields!
+            let name = fields[0].text ?? ""
+            let latitude = Double(fields[1].text ?? "") ?? 0
+            let longitude = Double(fields[2].text ?? "") ?? 0
+            let yearBuilt = Int32(fields[3].text ?? "") ?? 0
+            let totalArea = Double(fields[4].text ?? "") ?? 0
+            let floors = Int32(fields[5].text ?? "") ?? 0
+            let rooms = Int32(fields[6].text ?? "") ?? 0
+            let accounts = Int32(fields[7].text ?? "") ?? 0
+            let managementCompany = fields[8].text ?? ""
+            self.addPoint(
+                name: name,
+                latitude: latitude,
+                longitude: longitude,
+                yearBuilt: yearBuilt,
+                totalArea: totalArea,
+                floors: floors,
+                rooms: rooms,
+                accounts: accounts,
+                managementCompany: managementCompany
+            )
             self.addSavedPointsToMap()
         }))
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
@@ -435,59 +521,6 @@ class ViewController: UIViewController, MKMapViewDelegate, UITableViewDataSource
         circleRenderer.lineWidth = 1.0
         return circleRenderer
     }
-
-//    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-//        guard let url = urls.first else { return }
-//        // Проверяем доступность файла
-//        let coordinator = NSFileCoordinator()
-//        var error: NSError?
-//        var localURL: URL?
-//        coordinator.coordinate(readingItemAt: url, options: [], error: &error) { newURL in
-//            // Копируем файл в директорию Documents приложения
-//            let fileManager = FileManager.default
-//            let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-//            let destURL = docsURL.appendingPathComponent(newURL.lastPathComponent)
-//            do {
-//                if fileManager.fileExists(atPath: destURL.path) {
-//                    try fileManager.removeItem(at: destURL)
-//                }
-//                try fileManager.copyItem(at: newURL, to: destURL)
-//                localURL = destURL
-//            } catch {
-//                localURL = nil
-//            }
-//        }
-//        if let localURL = localURL {
-//            do {
-//                let data = try Data(contentsOf: localURL)
-//                let imported = try JSONDecoder().decode([ExportedPoint].self, from: data)
-//                let context = PersistenceController.shared.context
-//                for point in savedPoints {
-//                    context.delete(point)
-//                }
-//                for e in imported {
-//                    let newPoint = SavedLocation(context: context)
-//                    newPoint.name = e.name
-//                    newPoint.latitude = e.latitude
-//                    newPoint.longitude = e.longitude
-//                }
-//                try context.save()
-//                loadPoints()
-//                addSavedPointsToMap()
-//                let alert = UIAlertController(title: "Импорт завершён", message: "Загружено точек: \(imported.count)", preferredStyle: .alert)
-//                alert.addAction(UIAlertAction(title: "Ок", style: .default))
-//                present(alert, animated: true)
-//            } catch {
-//                let alert = UIAlertController(title: "Ошибка", message: "Не удалось импортировать точки из файла.\n\(error)", preferredStyle: .alert)
-//                alert.addAction(UIAlertAction(title: "Ок", style: .default))
-//                present(alert, animated: true)
-//            }
-//        } else {
-//            let alert = UIAlertController(title: "Ошибка", message: "Не удалось скопировать файл для чтения.", preferredStyle: .alert)
-//            alert.addAction(UIAlertAction(title: "Ок", style: .default))
-//            present(alert, animated: true)
-//        }
-//    }
 }
 
 extension ViewController: UIDocumentPickerDelegate {
@@ -495,30 +528,49 @@ extension ViewController: UIDocumentPickerDelegate {
         guard let selectedURL = urls.first else { return }
         let fileManager = FileManager.default
         let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let destinationURL = docsURL.appendingPathComponent(selectedURL.lastPathComponent)
+        let destinationURL = docsURL.appendingPathComponent("points.json") // всегда сохраняем под одним именем
 
-        // Копируем выбранный файл в Documents, если нужно
-        do {
-            if fileManager.fileExists(atPath: destinationURL.path) {
-                try fileManager.removeItem(at: destinationURL)
-            }
-            // Копируем, если файл еще не в Documents
+        var fileToRead = selectedURL
+
+        // Проверяем, нужно ли копировать (если файл не в папке Documents)
+        if selectedURL.deletingLastPathComponent() != docsURL {
             if selectedURL.startAccessingSecurityScopedResource() {
                 defer { selectedURL.stopAccessingSecurityScopedResource() }
-                try fileManager.copyItem(at: selectedURL, to: destinationURL)
+                do {
+                    if fileManager.fileExists(atPath: destinationURL.path) {
+                        try fileManager.removeItem(at: destinationURL)
+                    }
+                    try fileManager.copyItem(at: selectedURL, to: destinationURL)
+                    fileToRead = destinationURL
+                } catch {
+                    let alert = UIAlertController(title: "Ошибка копирования", message: error.localizedDescription, preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "Ок", style: .default))
+                    present(alert, animated: true)
+                    return
+                }
             }
-            // Теперь читаем из destinationURL!
-            let data = try Data(contentsOf: destinationURL)
+        } else {
+            // Если файл уже в Documents — ничего не копируем
+            fileToRead = selectedURL
+        }
+
+        // Теперь читаем данные из fileToRead
+        do {
+            let data = try Data(contentsOf: fileToRead)
             let imported = try JSONDecoder().decode([ExportedPoint].self, from: data)
-            // Сохраняем точки в CoreData...
             let context = PersistenceController.shared.context
-            // Очистка старых точек, если надо
             for point in savedPoints { context.delete(point) }
             for e in imported {
                 let newPoint = SavedLocation(context: context)
                 newPoint.name = e.name
                 newPoint.latitude = e.latitude
                 newPoint.longitude = e.longitude
+                newPoint.yearBuilt = Int32(e.yearBuilt ?? 0)
+                newPoint.totalArea = e.totalArea ?? 0
+                newPoint.floors = Int32(e.floors ?? 0)
+                newPoint.rooms = Int32(e.rooms ?? 0)
+                newPoint.accounts = Int32(e.accounts ?? 0)
+                newPoint.managementCompany = e.managementCompany
             }
             try context.save()
             loadPoints()
@@ -531,5 +583,30 @@ extension ViewController: UIDocumentPickerDelegate {
             alert.addAction(UIAlertAction(title: "Ок", style: .default))
             present(alert, animated: true)
         }
+    }
+
+    func presentEditDetailsAlert(for point: SavedLocation) {
+        let alert = UIAlertController(title: "Характеристики дома", message: "Введите/измените информацию", preferredStyle: .alert)
+        alert.addTextField { $0.placeholder = "Год постройки (например, 2003)"; $0.text = point.yearBuilt == 0 ? "" : "\(point.yearBuilt)" }
+        alert.addTextField { $0.placeholder = "Общая площадь (кв.м.)"; $0.text = point.totalArea == 0 ? "" : "\(point.totalArea)" }
+        alert.addTextField { $0.placeholder = "Этажей"; $0.text = point.floors == 0 ? "" : "\(point.floors)" }
+        alert.addTextField { $0.placeholder = "Помещений"; $0.text = point.rooms == 0 ? "" : "\(point.rooms)" }
+        alert.addTextField { $0.placeholder = "Лицевых счетов"; $0.text = point.accounts == 0 ? "" : "\(point.accounts)" }
+        alert.addTextField { $0.placeholder = "Управляющая организация"; $0.text = point.managementCompany }
+
+        alert.addAction(UIAlertAction(title: "Сохранить", style: .default, handler: { _ in
+            let fields = alert.textFields!
+            point.yearBuilt = Int32(fields[0].text ?? "") ?? 0
+            point.totalArea = Double(fields[1].text ?? "") ?? 0
+            point.floors = Int32(fields[2].text ?? "") ?? 0
+            point.rooms = Int32(fields[3].text ?? "") ?? 0
+            point.accounts = Int32(fields[4].text ?? "") ?? 0
+            point.managementCompany = fields[5].text ?? ""
+            self.saveContext()
+            self.loadPoints()
+            self.addSavedPointsToMap()
+        }))
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        present(alert, animated: true)
     }
 }
