@@ -10,10 +10,6 @@
 		9053FC822DE0FDF60086BA6A /* BoilerHouseListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9053FC812DE0FDF60086BA6A /* BoilerHouseListViewController.swift */; };
 		9053FC862DE10BC10086BA6A /* BoilerHouseDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9053FC852DE10BC10086BA6A /* BoilerHouseDetailViewController.swift */; };
 		9053FC8A2DE1D5B50086BA6A /* BaseMapListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9053FC892DE1D5B50086BA6A /* BaseMapListViewController.swift */; };
-		90B729A82DE224A9006BB634 /* BoilerHouse+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729A62DE224A9006BB634 /* BoilerHouse+CoreDataClass.swift */; };
-		90B729A92DE224A9006BB634 /* BoilerHouse+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729A72DE224A9006BB634 /* BoilerHouse+CoreDataProperties.swift */; };
-		90B729AC2DE224C8006BB634 /* SavedLocation+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729AA2DE224C8006BB634 /* SavedLocation+CoreDataClass.swift */; };
-		90B729AD2DE224C8006BB634 /* SavedLocation+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729AB2DE224C8006BB634 /* SavedLocation+CoreDataProperties.swift */; };
 		90B729AF2DE22E14006BB634 /* ExportedPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729AE2DE22E14006BB634 /* ExportedPoint.swift */; };
 		90B729B12DE22E47006BB634 /* BoilerHouseData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729B02DE22E47006BB634 /* BoilerHouseData.swift */; };
 		90B729B32DE22E6D006BB634 /* SavedLocationData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729B22DE22E6D006BB634 /* SavedLocationData.swift */; };
@@ -21,6 +17,12 @@
 		90B729B92DE33F10006BB634 /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729B82DE33F10006BB634 /* Account.swift */; };
 		90B729BB2DE33FAA006BB634 /* MockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729BA2DE33FAA006BB634 /* MockData.swift */; };
 		90B729BD2DE345B6006BB634 /* EditSavedLocationViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729BC2DE345B6006BB634 /* EditSavedLocationViewController.swift */; };
+		90B729C42DE34DD1006BB634 /* SavedLocation+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729BE2DE34DD1006BB634 /* SavedLocation+CoreDataClass.swift */; };
+		90B729C52DE34DD1006BB634 /* SavedLocation+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729BF2DE34DD1006BB634 /* SavedLocation+CoreDataProperties.swift */; };
+		90B729C62DE34DD1006BB634 /* BoilerHouse+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729C02DE34DD1006BB634 /* BoilerHouse+CoreDataClass.swift */; };
+		90B729C72DE34DD1006BB634 /* BoilerHouse+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729C12DE34DD1006BB634 /* BoilerHouse+CoreDataProperties.swift */; };
+		90B729C82DE34DD1006BB634 /* MyAccount+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729C22DE34DD1006BB634 /* MyAccount+CoreDataClass.swift */; };
+		90B729C92DE34DD1006BB634 /* MyAccount+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729C32DE34DD1006BB634 /* MyAccount+CoreDataProperties.swift */; };
 		90B98A6F2DE0814A0024371E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A6E2DE0814A0024371E /* AppDelegate.swift */; };
 		90B98A712DE0814A0024371E /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A702DE0814A0024371E /* SceneDelegate.swift */; };
 		90B98A792DE0814A0024371E /* TeploserviceMap.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A772DE0814A0024371E /* TeploserviceMap.xcdatamodeld */; };
@@ -33,10 +35,6 @@
 		9053FC812DE0FDF60086BA6A /* BoilerHouseListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoilerHouseListViewController.swift; sourceTree = "<group>"; };
 		9053FC852DE10BC10086BA6A /* BoilerHouseDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoilerHouseDetailViewController.swift; sourceTree = "<group>"; };
 		9053FC892DE1D5B50086BA6A /* BaseMapListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseMapListViewController.swift; sourceTree = "<group>"; };
-		90B729A62DE224A9006BB634 /* BoilerHouse+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BoilerHouse+CoreDataClass.swift"; sourceTree = "<group>"; };
-		90B729A72DE224A9006BB634 /* BoilerHouse+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BoilerHouse+CoreDataProperties.swift"; sourceTree = "<group>"; };
-		90B729AA2DE224C8006BB634 /* SavedLocation+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SavedLocation+CoreDataClass.swift"; sourceTree = "<group>"; };
-		90B729AB2DE224C8006BB634 /* SavedLocation+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SavedLocation+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		90B729AE2DE22E14006BB634 /* ExportedPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportedPoint.swift; sourceTree = "<group>"; };
 		90B729B02DE22E47006BB634 /* BoilerHouseData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoilerHouseData.swift; sourceTree = "<group>"; };
 		90B729B22DE22E6D006BB634 /* SavedLocationData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedLocationData.swift; sourceTree = "<group>"; };
@@ -44,6 +42,12 @@
 		90B729B82DE33F10006BB634 /* Account.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Account.swift; sourceTree = "<group>"; };
 		90B729BA2DE33FAA006BB634 /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
 		90B729BC2DE345B6006BB634 /* EditSavedLocationViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditSavedLocationViewController.swift; sourceTree = "<group>"; };
+		90B729BE2DE34DD1006BB634 /* SavedLocation+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SavedLocation+CoreDataClass.swift"; sourceTree = "<group>"; };
+		90B729BF2DE34DD1006BB634 /* SavedLocation+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SavedLocation+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		90B729C02DE34DD1006BB634 /* BoilerHouse+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BoilerHouse+CoreDataClass.swift"; sourceTree = "<group>"; };
+		90B729C12DE34DD1006BB634 /* BoilerHouse+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BoilerHouse+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		90B729C22DE34DD1006BB634 /* MyAccount+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MyAccount+CoreDataClass.swift"; sourceTree = "<group>"; };
+		90B729C32DE34DD1006BB634 /* MyAccount+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MyAccount+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		90B98A6B2DE0814A0024371E /* TeploserviceMap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TeploserviceMap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		90B98A6E2DE0814A0024371E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		90B98A702DE0814A0024371E /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -92,10 +96,12 @@
 		90B729B52DE22F32006BB634 /* Database */ = {
 			isa = PBXGroup;
 			children = (
-				90B729AA2DE224C8006BB634 /* SavedLocation+CoreDataClass.swift */,
-				90B729AB2DE224C8006BB634 /* SavedLocation+CoreDataProperties.swift */,
-				90B729A62DE224A9006BB634 /* BoilerHouse+CoreDataClass.swift */,
-				90B729A72DE224A9006BB634 /* BoilerHouse+CoreDataProperties.swift */,
+				90B729BE2DE34DD1006BB634 /* SavedLocation+CoreDataClass.swift */,
+				90B729BF2DE34DD1006BB634 /* SavedLocation+CoreDataProperties.swift */,
+				90B729C02DE34DD1006BB634 /* BoilerHouse+CoreDataClass.swift */,
+				90B729C12DE34DD1006BB634 /* BoilerHouse+CoreDataProperties.swift */,
+				90B729C22DE34DD1006BB634 /* MyAccount+CoreDataClass.swift */,
+				90B729C32DE34DD1006BB634 /* MyAccount+CoreDataProperties.swift */,
 				90B98A872DE0857F0024371E /* PersistenceController.swift */,
 			);
 			path = Database;
@@ -204,13 +210,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				90B98A6F2DE0814A0024371E /* AppDelegate.swift in Sources */,
-				90B729A82DE224A9006BB634 /* BoilerHouse+CoreDataClass.swift in Sources */,
-				90B729A92DE224A9006BB634 /* BoilerHouse+CoreDataProperties.swift in Sources */,
+				90B729C42DE34DD1006BB634 /* SavedLocation+CoreDataClass.swift in Sources */,
+				90B729C52DE34DD1006BB634 /* SavedLocation+CoreDataProperties.swift in Sources */,
+				90B729C62DE34DD1006BB634 /* BoilerHouse+CoreDataClass.swift in Sources */,
+				90B729C72DE34DD1006BB634 /* BoilerHouse+CoreDataProperties.swift in Sources */,
+				90B729C82DE34DD1006BB634 /* MyAccount+CoreDataClass.swift in Sources */,
+				90B729C92DE34DD1006BB634 /* MyAccount+CoreDataProperties.swift in Sources */,
 				90B729BD2DE345B6006BB634 /* EditSavedLocationViewController.swift in Sources */,
 				90B729AF2DE22E14006BB634 /* ExportedPoint.swift in Sources */,
-				90B729AC2DE224C8006BB634 /* SavedLocation+CoreDataClass.swift in Sources */,
 				90B729B92DE33F10006BB634 /* Account.swift in Sources */,
-				90B729AD2DE224C8006BB634 /* SavedLocation+CoreDataProperties.swift in Sources */,
 				90B98A712DE0814A0024371E /* SceneDelegate.swift in Sources */,
 				9053FC862DE10BC10086BA6A /* BoilerHouseDetailViewController.swift in Sources */,
 				9053FC8A2DE1D5B50086BA6A /* BaseMapListViewController.swift in Sources */,

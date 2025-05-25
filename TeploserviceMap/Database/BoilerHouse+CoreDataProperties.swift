@@ -2,7 +2,7 @@
 //  BoilerHouse+CoreDataProperties.swift
 //  TeploserviceMap
 //
-//  Created by Shamil Aglarov on 24.05.2025.
+//  Created by Murad Tataev on 25.05.2025.
 //
 //
 

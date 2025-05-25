@@ -216,10 +216,9 @@ class AccountDetailViewController: UIViewController {
 }
 
 extension SavedLocation {
-    var accountsList: [Account] {
-        (accounts as? Set<Account>)?.sorted { $0.accountNumber < $1.accountNumber } ?? []
+    var accountsList: [MyAccount] {
+        (myAccounts as? Set<MyAccount>)?.sorted { $0.accountNumber ?? "" < $1.accountNumber ?? "" } ?? []
     }
-    //для подсчета количества
     var accountsCount: Int {
         accountsList.count
     }
