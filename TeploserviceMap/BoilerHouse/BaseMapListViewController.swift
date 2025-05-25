@@ -23,14 +23,6 @@ protocol ExportablePoint: Codable {
     var managementCompany: String? { get }
 }
 
-//extension SavedLocation: ExportablePoint {
-//    var yearBuilt: Int? { self.yearBuilt == 0 ? nil : Int(self.yearBuilt) }
-//    var totalArea: Double? { self.totalArea == 0 ? nil : self.totalArea }
-//    var floors: Int? { self.floors == 0 ? nil : Int(self.floors) }
-//    var rooms: Int? { self.rooms == 0 ? nil : Int(self.rooms) }
-//    var accounts: Int? { self.accounts == 0 ? nil : Int(self.accounts) }
-//}
-
 class BaseMapListViewController<Item: NSManagedObject>: UIViewController,
                                                         UITableViewDataSource,
                                                         UITableViewDelegate,
@@ -46,9 +38,9 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController,
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.backgroundColor = .systemBlue
-        button.setImage(UIImage(systemName: "plus"), for: .normal)
+        button.setImage(UIImage(systemName: "pc"), for: .normal)
         button.tintColor = .white
-        button.layer.cornerRadius = 21
+        button.layer.cornerRadius = 30
         button.layer.shadowOpacity = 0.3
         button.layer.shadowOffset = CGSize(width: 0, height: 4)
         button.layer.shadowRadius = 6
@@ -157,8 +149,8 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController,
         NSLayoutConstraint.activate([
             floatingButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
             floatingButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: -24),
-            floatingButton.widthAnchor.constraint(equalToConstant: 44),
-            floatingButton.heightAnchor.constraint(equalToConstant: 44)
+            floatingButton.widthAnchor.constraint(equalToConstant: 60),
+            floatingButton.heightAnchor.constraint(equalToConstant: 60)
         ])
 
         view.addSubview(mapTypeButton)
