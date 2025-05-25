@@ -2,7 +2,7 @@
 //  SceneDelegate.swift
 //  Mapper
 //
-//  Created by Murad Tataev on 23.05.2025.
+//  Created by Shamil Aglarov on 23.05.2025.
 //
 
 import UIKit
@@ -18,7 +18,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let scene = (scene as? UIWindowScene) else { return }
         window = UIWindow(windowScene: scene)
-        window?.rootViewController = UINavigationController(rootViewController: ViewController())
+        window?.rootViewController = UINavigationController(rootViewController: BoilerHouseListViewController())
         window?.makeKeyAndVisible()
 
     }

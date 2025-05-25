@@ -19,5 +19,7 @@
 			</array>
 		</dict>
 	</dict>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Нам нужно ваше местоположение для показа на карте.</string>
 </dict>
 </plist>
