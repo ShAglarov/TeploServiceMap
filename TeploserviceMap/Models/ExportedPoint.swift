@@ -2,25 +2,19 @@
 //  ExportedPoint.swift
 //  TeploserviceMap
 //
-//  Created by Murad Tataev on 23.05.2025.
+//  Created by Shamil Aglarov on 24.05.2025.
 //
 
 import Foundation
-import CoreLocation
 
 struct ExportedPoint: Codable {
     let name: String
     let latitude: Double
     let longitude: Double
-
     let yearBuilt: Int?
     let totalArea: Double?
     let floors: Int?
     let rooms: Int?
     let accounts: Int?
     let managementCompany: String?
-
-    var coordinate: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-    }
 }

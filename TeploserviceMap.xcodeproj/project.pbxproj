@@ -9,35 +9,41 @@
 /* Begin PBXBuildFile section */
 		9053FC822DE0FDF60086BA6A /* BoilerHouseListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9053FC812DE0FDF60086BA6A /* BoilerHouseListViewController.swift */; };
 		9053FC862DE10BC10086BA6A /* BoilerHouseDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9053FC852DE10BC10086BA6A /* BoilerHouseDetailViewController.swift */; };
-		9053FC882DE116640086BA6A /* BoilerHouse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9053FC872DE116640086BA6A /* BoilerHouse.swift */; };
 		9053FC8A2DE1D5B50086BA6A /* BaseMapListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9053FC892DE1D5B50086BA6A /* BaseMapListViewController.swift */; };
+		90B729A82DE224A9006BB634 /* BoilerHouse+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729A62DE224A9006BB634 /* BoilerHouse+CoreDataClass.swift */; };
+		90B729A92DE224A9006BB634 /* BoilerHouse+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729A72DE224A9006BB634 /* BoilerHouse+CoreDataProperties.swift */; };
+		90B729AC2DE224C8006BB634 /* SavedLocation+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729AA2DE224C8006BB634 /* SavedLocation+CoreDataClass.swift */; };
+		90B729AD2DE224C8006BB634 /* SavedLocation+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729AB2DE224C8006BB634 /* SavedLocation+CoreDataProperties.swift */; };
+		90B729AF2DE22E14006BB634 /* ExportedPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729AE2DE22E14006BB634 /* ExportedPoint.swift */; };
+		90B729B12DE22E47006BB634 /* BoilerHouseData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729B02DE22E47006BB634 /* BoilerHouseData.swift */; };
+		90B729B32DE22E6D006BB634 /* SavedLocationData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B729B22DE22E6D006BB634 /* SavedLocationData.swift */; };
 		90B98A6F2DE0814A0024371E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A6E2DE0814A0024371E /* AppDelegate.swift */; };
 		90B98A712DE0814A0024371E /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A702DE0814A0024371E /* SceneDelegate.swift */; };
-		90B98A732DE0814A0024371E /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A722DE0814A0024371E /* ViewController.swift */; };
 		90B98A792DE0814A0024371E /* TeploserviceMap.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A772DE0814A0024371E /* TeploserviceMap.xcdatamodeld */; };
 		90B98A7B2DE0814B0024371E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 90B98A7A2DE0814B0024371E /* Assets.xcassets */; };
 		90B98A7E2DE0814B0024371E /* Base in Resources */ = {isa = PBXBuildFile; fileRef = 90B98A7D2DE0814B0024371E /* Base */; };
-		90B98A862DE082270024371E /* SavedLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A852DE082270024371E /* SavedLocation.swift */; };
 		90B98A882DE0857F0024371E /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A872DE0857F0024371E /* PersistenceController.swift */; };
-		90B98A8A2DE08BC40024371E /* ExportedPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B98A892DE08BC40024371E /* ExportedPoint.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		9053FC812DE0FDF60086BA6A /* BoilerHouseListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoilerHouseListViewController.swift; sourceTree = "<group>"; };
 		9053FC852DE10BC10086BA6A /* BoilerHouseDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoilerHouseDetailViewController.swift; sourceTree = "<group>"; };
-		9053FC872DE116640086BA6A /* BoilerHouse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoilerHouse.swift; sourceTree = "<group>"; };
 		9053FC892DE1D5B50086BA6A /* BaseMapListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseMapListViewController.swift; sourceTree = "<group>"; };
+		90B729A62DE224A9006BB634 /* BoilerHouse+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BoilerHouse+CoreDataClass.swift"; sourceTree = "<group>"; };
+		90B729A72DE224A9006BB634 /* BoilerHouse+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BoilerHouse+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		90B729AA2DE224C8006BB634 /* SavedLocation+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SavedLocation+CoreDataClass.swift"; sourceTree = "<group>"; };
+		90B729AB2DE224C8006BB634 /* SavedLocation+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SavedLocation+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		90B729AE2DE22E14006BB634 /* ExportedPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportedPoint.swift; sourceTree = "<group>"; };
+		90B729B02DE22E47006BB634 /* BoilerHouseData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoilerHouseData.swift; sourceTree = "<group>"; };
+		90B729B22DE22E6D006BB634 /* SavedLocationData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedLocationData.swift; sourceTree = "<group>"; };
 		90B98A6B2DE0814A0024371E /* TeploserviceMap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TeploserviceMap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		90B98A6E2DE0814A0024371E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		90B98A702DE0814A0024371E /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		90B98A722DE0814A0024371E /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		90B98A782DE0814A0024371E /* TeploserviceMap.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = TeploserviceMap.xcdatamodel; sourceTree = "<group>"; };
 		90B98A7A2DE0814B0024371E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		90B98A7D2DE0814B0024371E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		90B98A7F2DE0814B0024371E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		90B98A852DE082270024371E /* SavedLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedLocation.swift; sourceTree = "<group>"; };
 		90B98A872DE0857F0024371E /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
-		90B98A892DE08BC40024371E /* ExportedPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportedPoint.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +67,28 @@
 			path = BoilerHouse;
 			sourceTree = "<group>";
 		};
+		90B729B42DE22EE4006BB634 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				90B729AE2DE22E14006BB634 /* ExportedPoint.swift */,
+				90B729B02DE22E47006BB634 /* BoilerHouseData.swift */,
+				90B729B22DE22E6D006BB634 /* SavedLocationData.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		90B729B52DE22F32006BB634 /* Database */ = {
+			isa = PBXGroup;
+			children = (
+				90B729AA2DE224C8006BB634 /* SavedLocation+CoreDataClass.swift */,
+				90B729AB2DE224C8006BB634 /* SavedLocation+CoreDataProperties.swift */,
+				90B729A62DE224A9006BB634 /* BoilerHouse+CoreDataClass.swift */,
+				90B729A72DE224A9006BB634 /* BoilerHouse+CoreDataProperties.swift */,
+				90B98A872DE0857F0024371E /* PersistenceController.swift */,
+			);
+			path = Database;
+			sourceTree = "<group>";
+		};
 		90B98A622DE081490024371E = {
 			isa = PBXGroup;
 			children = (
@@ -82,16 +110,13 @@
 			children = (
 				90B98A6E2DE0814A0024371E /* AppDelegate.swift */,
 				90B98A702DE0814A0024371E /* SceneDelegate.swift */,
-				90B98A722DE0814A0024371E /* ViewController.swift */,
+				90B729B42DE22EE4006BB634 /* Models */,
 				9053FC8B2DE1D94E0086BA6A /* BoilerHouse */,
-				90B98A852DE082270024371E /* SavedLocation.swift */,
-				9053FC872DE116640086BA6A /* BoilerHouse.swift */,
-				90B98A872DE0857F0024371E /* PersistenceController.swift */,
+				90B729B52DE22F32006BB634 /* Database */,
 				90B98A7A2DE0814B0024371E /* Assets.xcassets */,
 				90B98A7C2DE0814B0024371E /* LaunchScreen.storyboard */,
 				90B98A7F2DE0814B0024371E /* Info.plist */,
 				90B98A772DE0814A0024371E /* TeploserviceMap.xcdatamodeld */,
-				90B98A892DE08BC40024371E /* ExportedPoint.swift */,
 			);
 			path = TeploserviceMap;
 			sourceTree = "<group>";
@@ -166,16 +191,19 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				90B98A732DE0814A0024371E /* ViewController.swift in Sources */,
 				90B98A6F2DE0814A0024371E /* AppDelegate.swift in Sources */,
+				90B729A82DE224A9006BB634 /* BoilerHouse+CoreDataClass.swift in Sources */,
+				90B729A92DE224A9006BB634 /* BoilerHouse+CoreDataProperties.swift in Sources */,
+				90B729AF2DE22E14006BB634 /* ExportedPoint.swift in Sources */,
+				90B729AC2DE224C8006BB634 /* SavedLocation+CoreDataClass.swift in Sources */,
+				90B729AD2DE224C8006BB634 /* SavedLocation+CoreDataProperties.swift in Sources */,
 				90B98A712DE0814A0024371E /* SceneDelegate.swift in Sources */,
 				9053FC862DE10BC10086BA6A /* BoilerHouseDetailViewController.swift in Sources */,
 				9053FC8A2DE1D5B50086BA6A /* BaseMapListViewController.swift in Sources */,
-				90B98A8A2DE08BC40024371E /* ExportedPoint.swift in Sources */,
-				9053FC882DE116640086BA6A /* BoilerHouse.swift in Sources */,
+				90B729B12DE22E47006BB634 /* BoilerHouseData.swift in Sources */,
 				90B98A882DE0857F0024371E /* PersistenceController.swift in Sources */,
 				9053FC822DE0FDF60086BA6A /* BoilerHouseListViewController.swift in Sources */,
-				90B98A862DE082270024371E /* SavedLocation.swift in Sources */,
+				90B729B32DE22E6D006BB634 /* SavedLocationData.swift in Sources */,
 				90B98A792DE0814A0024371E /* TeploserviceMap.xcdatamodeld in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -4,7 +4,7 @@
         <attribute name="latitude" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="longitude" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="name" optional="YES" attributeType="String"/>
-        <relationship name="locations" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="SavedLocation" inverseName="boilerHouse" inverseEntity="SavedLocation"/>
+        <relationship name="savedLocations" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="SavedLocation" inverseName="boilerHouse" inverseEntity="SavedLocation"/>
     </entity>
     <entity name="SavedLocation" representedClassName=".SavedLocation" syncable="YES">
         <attribute name="accounts" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
@@ -16,6 +16,6 @@
         <attribute name="rooms" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="totalArea" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="yearBuilt" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <relationship name="boilerHouse" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BoilerHouse" inverseName="locations" inverseEntity="BoilerHouse"/>
+        <relationship name="boilerHouse" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BoilerHouse" inverseName="savedLocations" inverseEntity="BoilerHouse"/>
     </entity>
 </model>

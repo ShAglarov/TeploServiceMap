@@ -2,17 +2,43 @@
 //  BaseMapListViewController.swift
 //  TeploserviceMap
 //
-//  Created by Murad Tataev on 24.05.2025.
+//  Created by Shamil Aglarov on 24.05.2025.
 //
 
 import UIKit
 import MapKit
 import CoreData
+import UniformTypeIdentifiers
 
-// MARK: - Базовый класс для любого экрана "Карта + список"
-class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITableViewDataSource, UITableViewDelegate, MKMapViewDelegate, CLLocationManagerDelegate {
+// MARK: - Протокол для поддержки экспорта/импорта (опционально для универсальности)
+protocol ExportablePoint: Codable {
+    var name: String { get }
+    var latitude: Double { get }
+    var longitude: Double { get }
+    var yearBuilt: Int? { get }
+    var totalArea: Double? { get }
+    var floors: Int? { get }
+    var rooms: Int? { get }
+    var accounts: Int? { get }
+    var managementCompany: String? { get }
+}
 
-    // --- Публичные свойства для дочерних классов ---
+//extension SavedLocation: ExportablePoint {
+//    var yearBuilt: Int? { self.yearBuilt == 0 ? nil : Int(self.yearBuilt) }
+//    var totalArea: Double? { self.totalArea == 0 ? nil : self.totalArea }
+//    var floors: Int? { self.floors == 0 ? nil : Int(self.floors) }
+//    var rooms: Int? { self.rooms == 0 ? nil : Int(self.rooms) }
+//    var accounts: Int? { self.accounts == 0 ? nil : Int(self.accounts) }
+//}
+
+class BaseMapListViewController<Item: NSManagedObject>: UIViewController,
+                                                        UITableViewDataSource,
+                                                        UITableViewDelegate,
+                                                        MKMapViewDelegate,
+                                                        CLLocationManagerDelegate,
+                                                        UIDocumentPickerDelegate {
+
+    // --- Публичные свойства ---
     let mapView = MKMapView()
     let tableView = UITableView()
 
@@ -33,9 +59,7 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setImage(UIImage(systemName: "map.fill"), for: .normal)
-        // Яркая, но не броская иконка (голубой)
         button.tintColor = UIColor.systemBlue.withAlphaComponent(0.62)
-        // Легкий прозрачный фон с голубым
         button.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.16)
         button.layer.cornerRadius = 22
         button.layer.shadowColor = UIColor.systemBlue.withAlphaComponent(0.22).cgColor
@@ -45,14 +69,11 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
         button.alpha = 0.85
         return button
     }()
-
     let locateMeButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setImage(UIImage(systemName: "location.fill"), for: .normal)
-        // Яркая иконка (зелёный)
         button.tintColor = UIColor.systemGreen.withAlphaComponent(0.62)
-        // Лёгкий прозрачный фон с зеленоватым оттенком
         button.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.14)
         button.layer.cornerRadius = 22
         button.layer.shadowColor = UIColor.systemGreen.withAlphaComponent(0.16).cgColor
@@ -69,17 +90,18 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
     var tableViewHeightConstraint: NSLayoutConstraint?
     var mapViewHeightConstraint: NSLayoutConstraint?
     var tableViewTopConstraint: NSLayoutConstraint?
-    
-    // Менеджер локации
-       private let locationManager = CLLocationManager()
+    private let locationManager = CLLocationManager()
+
+    // Путь к файлу points.json в папке Documents
+    private var jsonFileURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("points.json")
+    }
+
 
     // --- MARK: - Жизненный цикл ---
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Показываем текущее местоположение пользователя на карте
         mapView.showsUserLocation = true
-
-        // Запрашиваем разрешение на использование геолокации
         locationManager.delegate = self
         locationManager.requestWhenInUseAuthorization()
         view.backgroundColor = .systemBackground
@@ -89,19 +111,20 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
         tableView.dataSource = self
         tableView.delegate = self
 
-        // Tap для скрытия/отображения таблицы
         let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleMapTap(_:)))
         tapRecognizer.cancelsTouchesInView = false
         mapView.addGestureRecognizer(tapRecognizer)
 
-        // Долгое нажатие по таблице (можно расширять в дочерних)
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleTableLongPress(_:)))
         tableView.addGestureRecognizer(longPress)
 
-        // Долгое нажатие по карте (для добавления точки, реализуется в дочернем)
         let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleMapLongPress(_:)))
         longPressRecognizer.minimumPressDuration = 0.5
         mapView.addGestureRecognizer(longPressRecognizer)
+
+        tableStyle()
+        loadItems()
+        reloadAnnotations()
     }
 
     // --- MARK: - UI Setup ---
@@ -180,8 +203,6 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
     @objc func focusMapOnUserLocationButtonTapped() {
         focusMapOnUserLocation(animated: true)
     }
-
-    // Вспомогательный метод — приблизить к пользователю
     func focusMapOnUserLocation(animated: Bool = true) {
         let userCoord = mapView.userLocation.coordinate
         if CLLocationCoordinate2DIsValid(userCoord) {
@@ -190,23 +211,253 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
         }
     }
 
-//    // Автофокус после получения локации — только при первом появлении
-//    func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
-//        focusMapOnUserLocation()
-//    }
-
-    // --- MARK: - Floating Menu (переопределять в дочерних) ---
+    // --- MARK: - Floating Menu ---
     func setupFloatingMenu() {
         floatingButton.showsMenuAsPrimaryAction = true
         floatingButton.menu = UIMenu(title: "", children: [
-            UIAction(title: "Добавить", image: UIImage(systemName: "plus")) { [weak self] _ in
-                self?.showAddItemAlert()
+            UIAction(title: "Экспортировать", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
+                self?.exportItemsToJSON()
+            },
+            UIAction(title: "Импортировать", image: UIImage(systemName: "square.and.arrow.down")) { [weak self] _ in
+                self?.importItemsFromJSON()
+            },
+            UIAction(title: "Загрузить из файла", image: UIImage(systemName: "doc")) { [weak self] _ in
+                self?.importFromFileTapped()
             }
-            // Можно добавить импорт/экспорт в дочерних
         ])
     }
 
-    // --- MARK: - Смена режима карты ---
+    // --- MARK: - Экспорт/Импорт: заглушки (реализуй в наследнике для специфики) ---
+    func exportItemsToJSON() {
+        let exportArray: [ExportedPoint] = items.compactMap { item in
+            var name: String = ""
+            var latitude: Double = 0
+            var longitude: Double = 0
+            var yearBuilt: Int? = nil
+            var totalArea: Double? = nil
+            var floors: Int? = nil
+            var rooms: Int? = nil
+            var accounts: Int? = nil
+            var managementCompany: String? = nil
+
+            if let val = item.value(forKey: "name") as? String { name = val }
+            if let val = item.value(forKey: "latitude") as? Double { latitude = val }
+            if let val = item.value(forKey: "longitude") as? Double { longitude = val }
+            if let val = item.entity.attributesByName["yearBuilt"], let valRaw = item.value(forKey: "yearBuilt") {
+                yearBuilt = (valRaw as? Int) ?? (valRaw as? Int32).map { Int($0) }
+            }
+            if let _ = item.entity.attributesByName["totalArea"] {
+                totalArea = item.value(forKey: "totalArea") as? Double
+            }
+            if let _ = item.entity.attributesByName["floors"] {
+                floors = (item.value(forKey: "floors") as? Int) ?? (item.value(forKey: "floors") as? Int32).map { Int($0) }
+            }
+            if let _ = item.entity.attributesByName["rooms"] {
+                rooms = (item.value(forKey: "rooms") as? Int) ?? (item.value(forKey: "rooms") as? Int32).map { Int($0) }
+            }
+            if let _ = item.entity.attributesByName["accounts"] {
+                accounts = (item.value(forKey: "accounts") as? Int) ?? (item.value(forKey: "accounts") as? Int32).map { Int($0) }
+            }
+            if let _ = item.entity.attributesByName["managementCompany"] {
+                managementCompany = item.value(forKey: "managementCompany") as? String
+            }
+
+            return ExportedPoint(
+                name: name,
+                latitude: latitude,
+                longitude: longitude,
+                yearBuilt: yearBuilt,
+                totalArea: totalArea,
+                floors: floors,
+                rooms: rooms,
+                accounts: accounts,
+                managementCompany: managementCompany
+            )
+        }
+        do {
+            let data = try JSONEncoder().encode(exportArray)
+            try data.write(to: jsonFileURL)
+            let activityVC = UIActivityViewController(activityItems: [jsonFileURL], applicationActivities: nil)
+            present(activityVC, animated: true)
+        } catch {
+            showAlert(title: "Ошибка экспорта", message: error.localizedDescription)
+        }
+    }
+
+    func importItemsFromJSON() {
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: jsonFileURL.path) {
+            showAlert(title: "Файл не найден", message: "Экспортируйте объекты перед импортом или скопируйте points.json в приложение через Files/AirDrop.")
+            return
+        }
+        do {
+            let data = try Data(contentsOf: jsonFileURL) // <-- исправлено здесь
+            let imported = try JSONDecoder().decode([ExportedPoint].self, from: data)
+            let context = PersistenceController.shared.context
+            for object in items {
+                context.delete(object)
+            }
+            for e in imported {
+                let newObject = NSEntityDescription.insertNewObject(forEntityName: String(describing: Item.self), into: context)
+                newObject.setValue(e.name, forKey: "name")
+                newObject.setValue(e.latitude, forKey: "latitude")
+                newObject.setValue(e.longitude, forKey: "longitude")
+                newObject.setValue(e.yearBuilt ?? 0, forKey: "yearBuilt")
+                newObject.setValue(e.totalArea ?? 0, forKey: "totalArea")
+                newObject.setValue(e.floors ?? 0, forKey: "floors")
+                newObject.setValue(e.rooms ?? 0, forKey: "rooms")
+                newObject.setValue(e.accounts ?? 0, forKey: "accounts")
+                newObject.setValue(e.managementCompany, forKey: "managementCompany")
+            }
+            try context.save()
+            loadItems()
+            reloadAnnotations()
+            showAlert(title: "Импорт завершён", message: "Загружено объектов: \(imported.count)")
+        } catch {
+            showAlert(title: "Ошибка импорта JSON", message: error.localizedDescription)
+        }
+    }
+
+    // --- MARK: - Импорт через DocumentPicker ---
+    @objc private func importFromFileTapped() {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.json])
+        picker.delegate = self
+        picker.allowsMultipleSelection = false
+        present(picker, animated: true)
+    }
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let selectedURL = urls.first else { return }
+        let fileManager = FileManager.default
+        let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let destinationURL = docsURL.appendingPathComponent("points.json")
+        var fileToRead = selectedURL
+
+        if selectedURL.deletingLastPathComponent() != docsURL {
+            if selectedURL.startAccessingSecurityScopedResource() {
+                defer { selectedURL.stopAccessingSecurityScopedResource() }
+                do {
+                    if fileManager.fileExists(atPath: destinationURL.path) {
+                        try fileManager.removeItem(at: destinationURL)
+                    }
+                    try fileManager.copyItem(at: selectedURL, to: destinationURL)
+                    fileToRead = destinationURL
+                } catch {
+                    showAlert(title: "Ошибка копирования", message: error.localizedDescription)
+                    return
+                }
+            }
+        }
+        do {
+            let data = try Data(contentsOf: fileToRead)
+            let imported = try JSONDecoder().decode([ExportedPoint].self, from: data) // <-- исправлено здесь
+            let context = PersistenceController.shared.context
+            for object in items { context.delete(object) }
+            for e in imported {
+                let newObject = NSEntityDescription.insertNewObject(forEntityName: String(describing: Item.self), into: context)
+                newObject.setValue(e.name, forKey: "name")
+                newObject.setValue(e.latitude, forKey: "latitude")
+                newObject.setValue(e.longitude, forKey: "longitude")
+                newObject.setValue(e.yearBuilt ?? 0, forKey: "yearBuilt")
+                newObject.setValue(e.totalArea ?? 0, forKey: "totalArea")
+                newObject.setValue(e.floors ?? 0, forKey: "floors")
+                newObject.setValue(e.rooms ?? 0, forKey: "rooms")
+                newObject.setValue(e.accounts ?? 0, forKey: "accounts")
+                newObject.setValue(e.managementCompany, forKey: "managementCompany")
+            }
+            try context.save()
+            loadItems()
+            reloadAnnotations()
+            showAlert(title: "Импорт завершён", message: "Загружено объектов: \(imported.count)")
+        } catch {
+            showAlert(title: "Ошибка импорта JSON", message: error.localizedDescription)
+        }
+    }
+
+
+    // --- MARK: - TableView стиль ---
+    func tableStyle() {
+        tableView.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.42)
+        tableView.separatorStyle = .none
+        let blurEffect = UIBlurEffect(style: .systemMaterial)
+        let blurView = UIVisualEffectView(effect: blurEffect)
+        blurView.frame = tableView.bounds
+        blurView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        tableView.backgroundView = blurView
+    }
+
+    // --- MARK: - UITableViewDataSource ---
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return items.count
+    }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "BaseCell") ?? UITableViewCell(style: .subtitle, reuseIdentifier: "BaseCell")
+        // Универсально — наследник сам кастует к нужному типу и выводит нужные данные
+        let cornerRadius: CGFloat = 22
+        let pipeColor = UIColor.systemGray6.withAlphaComponent(0.86)
+        let pipeBorderColor = UIColor.systemGray4.withAlphaComponent(0.14)
+        let pipeView = UIView(frame: cell.bounds)
+        pipeView.backgroundColor = pipeColor
+        pipeView.layer.cornerRadius = cornerRadius
+        pipeView.layer.masksToBounds = false
+        pipeView.layer.shadowColor = UIColor.black.withAlphaComponent(0.10).cgColor
+        pipeView.layer.shadowOpacity = 0.6
+        pipeView.layer.shadowOffset = CGSize(width: 0, height: 2)
+        pipeView.layer.shadowRadius = 8
+
+        let border = UIView(frame: CGRect(x: 0, y: pipeView.frame.height-1, width: pipeView.frame.width, height: 2))
+        border.backgroundColor = pipeBorderColor
+        border.autoresizingMask = [.flexibleWidth, .flexibleTopMargin]
+        pipeView.addSubview(border)
+        cell.backgroundView = pipeView
+
+        // Демо-значения (наследник делает свой кастинг и вывод)
+        cell.textLabel?.text = "Title"
+        cell.textLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+        cell.textLabel?.textColor = UIColor.label
+        cell.detailTextLabel?.text = "Subtitle"
+        cell.detailTextLabel?.textColor = UIColor.secondaryLabel
+        cell.backgroundColor = .clear
+        tableView.separatorStyle = .none
+
+        let selView = UIView()
+        selView.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.08)
+        selView.layer.cornerRadius = cornerRadius
+        cell.selectedBackgroundView = selView
+
+        return cell
+    }
+
+    // --- MARK: - UITableViewDelegate ---
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let item = items[indexPath.row]
+        focusMapOnItem(item)
+        tableView.deselectRow(at: indexPath, animated: true)
+    }
+    @objc func handleTableLongPress(_ gesture: UILongPressGestureRecognizer) {
+        let point = gesture.location(in: tableView)
+        guard let indexPath = tableView.indexPathForRow(at: point), gesture.state == .began else { return }
+        let item = items[indexPath.row]
+        handleLongPressOnItem(item)
+    }
+
+    // --- MARK: - MKMapViewDelegate ---
+    func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+        return MKOverlayRenderer(overlay: overlay)
+    }
+
+    // --- MARK: - Методы для работы с данными (реализуются в дочерних) ---
+    func loadItems() {
+        // Переопредели для загрузки объектов
+    }
+    func showAddItemAlert() {
+        // Переопредели для показа алерта добавления
+    }
+    func reloadAnnotations() {
+        // Переопредели в дочернем
+    }
+
+    // --- MARK: - Карта ---
     @objc func showMapTypeMenu() {
         let alert = UIAlertController(title: "Тип карты", message: nil, preferredStyle: .actionSheet)
         let types: [(String, MKMapType)] = [
@@ -248,137 +499,28 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
             self.view.layoutIfNeeded()
         }
     }
-
-    // --- MARK: - Тап на карту ---
     @objc func handleMapTap(_ gesture: UITapGestureRecognizer) {
         toggleListVisibility()
     }
-
-    // --- MARK: - Долгое нажатие по карте (реализуется в дочерних) ---
     @objc func handleMapLongPress(_ gesture: UILongPressGestureRecognizer) {
-        // Пустая реализация — дочерние классы реализуют свою логику
+        // Реализовать в дочерних
     }
 
-    // --- MARK: - UITableViewDataSource (переопределять в дочерних) ---
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return items.count
-    }
-
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "BaseCell") ?? UITableViewCell(style: .subtitle, reuseIdentifier: "BaseCell")
-        let cornerRadius: CGFloat = 22
-
-        // Цвет “трубы” (можно подогнать под любую тему)
-        let pipeColor = UIColor.systemGray6.withAlphaComponent(0.86)
-        let pipeBorderColor = UIColor.systemGray4.withAlphaComponent(0.14)
-
-        // Фон трубы
-        let pipeView = UIView(frame: cell.bounds)
-        pipeView.backgroundColor = pipeColor
-        pipeView.layer.cornerRadius = cornerRadius
-        pipeView.layer.masksToBounds = false
-        pipeView.layer.shadowColor = UIColor.black.withAlphaComponent(0.10).cgColor
-        pipeView.layer.shadowOpacity = 0.6
-        pipeView.layer.shadowOffset = CGSize(width: 0, height: 2)
-        pipeView.layer.shadowRadius = 8
-
-        // Лёгкие "швы" (имитируем разрез трубы между ячейками)
-        let border = UIView(frame: CGRect(x: 0, y: pipeView.frame.height-1, width: pipeView.frame.width, height: 2))
-        border.backgroundColor = pipeBorderColor
-        border.autoresizingMask = [.flexibleWidth, .flexibleTopMargin]
-        pipeView.addSubview(border)
-
-        cell.backgroundView = pipeView
-
-        // Контент — как обычно, но выравниваем чуть правее/левее для ощущения "внутри трубы"
-        cell.textLabel?.text = "Title"
-        cell.textLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
-        cell.textLabel?.textColor = UIColor.label
-        cell.textLabel?.frame.origin.x += 16
-        cell.detailTextLabel?.text = "Subtitle"
-        cell.detailTextLabel?.textColor = UIColor.secondaryLabel
-        cell.detailTextLabel?.frame.origin.x += 16
-
-        // Убираем стандартный фон и разделители
-        cell.backgroundColor = .clear
-        tableView.separatorStyle = .none
-
-        // Selected BG — делаем прозрачным, чтобы не мешал
-        let selView = UIView()
-        selView.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.08)
-        selView.layer.cornerRadius = cornerRadius
-        cell.selectedBackgroundView = selView
-
-        return cell
-    }
-
-    // --- MARK: - UITableViewDelegate (переопределять в дочерних) ---
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let item = items[indexPath.row]
-        focusMapOnItem(item)
-        tableView.deselectRow(at: indexPath, animated: true)
-    }
-
-    // MARK: - TableView: долгий тап (универсально)
-    @objc func handleTableLongPress(_ gesture: UILongPressGestureRecognizer) {
-        let point = gesture.location(in: tableView)
-        guard let indexPath = tableView.indexPathForRow(at: point),
-              gesture.state == .began else { return }
-        let item = items[indexPath.row]
-        handleLongPressOnItem(item)
-    }
-
-    // --- MARK: - MKMapViewDelegate (можно расширять в дочерних) ---
-    func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-        return MKOverlayRenderer(overlay: overlay)
-    }
-
-    // --- MARK: - Методы для работы с данными (реализуются в дочерних) ---
-    func loadItems() {
-        // Переопредели для загрузки объектов (BoilerHouse или SavedLocation)
-    }
-
-    func showAddItemAlert() {
-        // Переопредели для показа алерта добавления
-    }
-
-    // --- MARK: - Для swipe (переопределять в дочерних) ---
+    // --- MARK: - Заглушки для расширения ---
     func configureEditAlert(for item: Item, completion: @escaping () -> Void) -> UIAlertController {
         fatalError("configureEditAlert(for:completion:) must be overridden in subclass")
     }
     func handleDelete(item: Item, completion: @escaping () -> Void) {
         fatalError("handleDelete(item:completion:) must be overridden in subclass")
     }
-
-    // --- MARK: - Заглушка для аннотаций (чтобы не было ошибок) ---
-    func reloadAnnotations() {
-        // Переопредели в дочернем, чтобы добавить свои аннотации на карту
-    }
-
-    // MARK: - TableView: выделение на карте по строке (универсально)
     func focusMapOnItem(_ item: Item) {
-        // Заглушка — реализовать в дочернем, если у Item нет lat/lon
+        // Переопредели для поддержки выбора точки на карте
     }
-
-    // Переопредели в наследнике — например, переход к другому экрану
     func handleLongPressOnItem(_ item: Item) {
-        // В базовом классе — пусто или показать UIAlert, если универсально
+        // Переопредели для действий по долгому тапу
     }
 
-    func tableStyle() {
-        // --- Стилизация таблицы ---
-            tableView.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.42) // Прозрачный фон
-            tableView.separatorStyle = .none // Без стандартных разделителей
-
-            // Если нужен эффект blur за таблицей (по желанию):
-            let blurEffect = UIBlurEffect(style: .systemMaterial)
-            let blurView = UIVisualEffectView(effect: blurEffect)
-            blurView.frame = tableView.bounds
-            blurView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            tableView.backgroundView = blurView
-    }
-
-    // --- MARK: - Универсальный swipe для редактирования и удаления ---
+    // --- MARK: - Swipe actions ---
     func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         let item = items[indexPath.row]
         let edit = UIContextualAction(style: .normal, title: "Редакт.") { [weak self] (action, view, completionHandler) in
@@ -400,7 +542,13 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController, UITabl
             }
             completionHandler(true)
         }
-
         return UISwipeActionsConfiguration(actions: [delete, edit])
+    }
+
+    // --- MARK: - Alerts ---
+    func showAlert(title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
 }

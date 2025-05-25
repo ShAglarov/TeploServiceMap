@@ -2,7 +2,7 @@
 //  HousesViewController.swift
 //  TeploserviceMap
 //
-//  Created by Murad Tataev on 23.05.2025.
+//  Created by Shamil Aglarov on 23.05.2025.
 //
 
 import UIKit
@@ -30,7 +30,7 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
 
     // MARK: - Загрузка домов котельной
     override func loadItems() {
-        let request: NSFetchRequest<SavedLocation> = SavedLocation.fetchRequest()
+        let request = SavedLocation.fetchRequest() as! NSFetchRequest<SavedLocation>
         request.predicate = NSPredicate(format: "boilerHouse == %@", boilerHouse)
         do {
             items = try PersistenceController.shared.context.fetch(request)
@@ -47,7 +47,7 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
         for point in items {
             let annotation = MKPointAnnotation()
             annotation.title = point.name
-            annotation.coordinate = point.coordinate
+            annotation.coordinate = CLLocationCoordinate2D(latitude: point.latitude, longitude: point.longitude)
             mapView.addAnnotation(annotation)
         }
         if !items.isEmpty {
