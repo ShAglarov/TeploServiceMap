@@ -2,10 +2,11 @@
 //  File.swift
 //  TeploserviceMap
 //
-//  Created by Murad Tataev on 25.05.2025.
+//  Created by Shamil Aglarov on 26.05.2025.
 //
 
 import UIKit
+import CoreLocation
 
 class SavedLocationDetailViewController: UIViewController {
     private let savedLocation: SavedLocation
@@ -28,6 +29,11 @@ class SavedLocationDetailViewController: UIViewController {
         view.backgroundColor = .systemGroupedBackground
         setupLayout()
         configureInfoCard()
+        configureLSButton()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
         configureLSButton()
     }
 
@@ -105,7 +111,7 @@ class SavedLocationDetailViewController: UIViewController {
     }
 
     private func configureLSButton() {
-        let count = savedLocation.accounts
+        let count = savedLocation.accountsCount 
         lsButton.setTitle("Лицевые счета: \(count)", for: .normal)
         lsButton.titleLabel?.font = .systemFont(ofSize: 19, weight: .bold)
         lsButton.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.09)
@@ -127,27 +133,44 @@ class SavedLocationDetailViewController: UIViewController {
 
 class AccountListViewController: UITableViewController {
     private let savedLocation: SavedLocation
-    private var accounts: [Account] = [] // Account — ваша CoreData модель лицевого счета
+    private var accounts: [MyAccount] = []
 
     init(savedLocation: SavedLocation) {
         self.savedLocation = savedLocation
         super.init(style: .insetGrouped)
         self.title = "Лицевые счета"
     }
-
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "AccountCell")
+        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addAccount))
         loadAccounts()
     }
 
     private func loadAccounts() {
-        // Здесь вытаскиваете лицевые счета по дому (например, по связи savedLocation.accounts)
-        // Для демонстрации — создаём фейковые данные:
-        accounts = MockData.sampleAccounts()
+        if let set = savedLocation.myAccounts as? Set<MyAccount> {
+            accounts = Array(set).sorted { ($0.accountNumber ?? "") < ($1.accountNumber ?? "") }
+        } else {
+            accounts = []
+        }
         tableView.reloadData()
+    }
+
+    // Добавляем лицевой счет
+    @objc private func addAccount() {
+        let context = PersistenceController.shared.context
+        let newAccount = MyAccount(context: context)
+        newAccount.location = savedLocation
+        let editVC = EditMyAccountViewController(account: newAccount, isNew: true)
+        editVC.onSave = { [weak self] in
+            self?.loadAccounts()
+            // После сохранения закрываем модальное окно
+            editVC.navigationController?.dismiss(animated: true)
+        }
+        let nav = UINavigationController(rootViewController: editVC)
+        present(nav, animated: true)
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -163,63 +186,29 @@ class AccountListViewController: UITableViewController {
         return cell
     }
 
+    // Открываем экран редактирования лицевых счетов модально
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let acc = accounts[indexPath.row]
-        let detail = AccountDetailViewController(account: acc)
-        navigationController?.pushViewController(detail, animated: true)
-    }
-}
-
-
-class AccountDetailViewController: UIViewController {
-    private let account: Account
-
-    init(account: Account) {
-        self.account = account
-        super.init(nibName: nil, bundle: nil)
-        self.title = "Лицевой счет"
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .systemGroupedBackground
-
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 18
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(stack)
-
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 22),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -22),
-            stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24)
-        ])
-
-        func info(_ label: String, _ value: String) -> UILabel {
-            let l = UILabel()
-            l.numberOfLines = 0
-            l.font = .systemFont(ofSize: 16)
-            l.textColor = .label
-            l.text = "\(label): \(value)"
-            return l
+        let editVC = EditMyAccountViewController(account: acc, isNew: false)
+        editVC.onSave = { [weak self] in
+            self?.loadAccounts()
         }
-
-        stack.addArrangedSubview(info("Номер счета", account.accountNumber))
-        stack.addArrangedSubview(info("ФИО абонента", account.fio))
-        stack.addArrangedSubview(info("Площадь", "\(account.area) м²"))
-        stack.addArrangedSubview(info("Статус", account.status.rawValue))
-        // Добавь сюда остальные поля: дата открытия, адрес, телефон, E-mail и т.д.
+        let nav = UINavigationController(rootViewController: editVC)
+        present(nav, animated: true) // <-- и тут тоже открывается модально!
     }
 }
+
+
 
 extension SavedLocation {
     var accountsList: [MyAccount] {
-        (myAccounts as? Set<MyAccount>)?.sorted { $0.accountNumber ?? "" < $1.accountNumber ?? "" } ?? []
+        (myAccounts as? Set<MyAccount>)?.sorted { ($0.accountNumber ?? "") < ($1.accountNumber ?? "") } ?? []
     }
     var accountsCount: Int {
         accountsList.count
+    }
+
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: self.latitude, longitude: self.longitude)
     }
 }

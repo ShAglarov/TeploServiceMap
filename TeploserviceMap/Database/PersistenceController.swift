@@ -13,7 +13,7 @@ class PersistenceController {
     let container: NSPersistentContainer
 
     private init() {
-        container = NSPersistentContainer(name: "TeploserviceMap") // Имя .xcdatamodeld без расширения!
+        container = NSPersistentContainer(name: "TeploserviceMap") // Имя вашей .xcdatamodeld
         container.loadPersistentStores { _, error in
             if let error = error {
                 fatalError("Ошибка загрузки хранилища Core Data: \(error)")

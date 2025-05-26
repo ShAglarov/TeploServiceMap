@@ -12,16 +12,6 @@ import UniformTypeIdentifiers
 
 class BoilerHouseListViewController: BaseMapListViewController<BoilerHouse> {
 
-    override func importItemsFromJSON() {
-        let fm = FileManager.default
-        let jsonURL = FileManager.default.temporaryDirectory.appendingPathComponent("boilerhouses.json")
-        guard fm.fileExists(atPath: jsonURL.path) else {
-            showAlert(title: "Файл не найден", message: "Сначала экспортируйте объекты или скопируйте boilerhouses.json в приложение.")
-            return
-        }
-        importFromJSON(jsonURL)
-    }
-
     // MARK: - Загрузка котельных из Core Data
     override func loadItems() {
         let request = NSFetchRequest<BoilerHouse>(entityName: "BoilerHouse")
@@ -170,120 +160,12 @@ class BoilerHouseListViewController: BaseMapListViewController<BoilerHouse> {
         }
     }
 
-    // --- ЭКСПОРТ ---
-    func exportBoilerHouses() {
-        let context = PersistenceController.shared.context
-        do {
-            let request = NSFetchRequest<BoilerHouse>(entityName: "BoilerHouse")
-            let boilerhouses = try context.fetch(request)
-            let exportData: [BoilerHouseData] = boilerhouses.map { bh in
-                let savedList = (bh.savedLocations as? Set<SavedLocation>) ?? []
-                let savedLocationsData = savedList.map { sl in
-                    SavedLocationData(
-                        name: sl.name ?? "",
-                        latitude: sl.latitude,
-                        longitude: sl.longitude,
-                        floors: sl.floors == 0 ? nil : Int(sl.floors),
-                        yearBuilt: sl.yearBuilt == 0 ? nil : Int(sl.yearBuilt),
-                        rooms: sl.rooms == 0 ? nil : Int(sl.rooms),
-                        accounts: sl.accounts == 0 ? nil : Int(sl.accounts),
-                        totalArea: sl.totalArea == 0 ? nil : sl.totalArea,
-                        managementCompany: sl.managementCompany
-                    )
-                }
-                return BoilerHouseData(
-                    name: bh.name ?? "",
-                    latitude: bh.latitude,
-                    longitude: bh.longitude,
-                    savedLocations: savedLocationsData
-                )
-            }
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = .prettyPrinted
-            let jsonData = try encoder.encode(exportData)
-            let tmpDir = FileManager.default.temporaryDirectory
-            let fileURL = tmpDir.appendingPathComponent("boilerhouses.json")
-            try jsonData.write(to: fileURL, options: .atomic)
-            let activityVC = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
-            present(activityVC, animated: true, completion: nil)
-        } catch {
-            print("Ошибка экспорта: \(error)")
-            showAlert(title: "Ошибка экспорта", message: error.localizedDescription)
-        }
-    }
-
-    override func exportItemsToJSON() {
-        exportBoilerHouses()
-    }
-
-    // --- ИМПОРТ ---
-    func importBoilerHouses() {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.json])
-        picker.delegate = self
-        picker.allowsMultipleSelection = false
-        picker.modalPresentationStyle = .formSheet
-        present(picker, animated: true, completion: nil)
-    }
-
-    override func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        guard let fileURL = urls.first else { return }
-        importFromJSON(fileURL)
-    }
-
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
         controller.dismiss(animated: true, completion: nil)
     }
 
-    private func importFromJSON(_ fileURL: URL) {
-        let context = PersistenceController.shared.context
-        do {
-            _ = fileURL.startAccessingSecurityScopedResource()
-            defer { fileURL.stopAccessingSecurityScopedResource() }
-            let jsonData = try Data(contentsOf: fileURL)
-            let decoder = JSONDecoder()
-            let importData = try decoder.decode([BoilerHouseData].self, from: jsonData)
-
-            // Очистка старых объектов
-            let oldSavedLocations = try context.fetch(SavedLocation.fetchRequest()) as! [SavedLocation]
-            for obj in oldSavedLocations { context.delete(obj) }
-            let oldBoilerHouses = try context.fetch(BoilerHouse.fetchRequest()) as! [BoilerHouse]
-            for obj in oldBoilerHouses { context.delete(obj) }
-
-            // Добавление новых объектов
-            for bhData in importData {
-                let bh = BoilerHouse(context: context)
-                bh.name = bhData.name
-                bh.latitude = bhData.latitude
-                bh.longitude = bhData.longitude
-
-                for slData in bhData.savedLocations {
-                    let sl = SavedLocation(context: context)
-                    sl.name = slData.name
-                    sl.latitude = slData.latitude
-                    sl.longitude = slData.longitude
-                    sl.floors = Int32(slData.floors ?? 0)
-                    sl.yearBuilt = Int32(slData.yearBuilt ?? 0)
-                    sl.rooms = Int32(slData.rooms ?? 0)
-                    sl.accounts = Int32(slData.accounts ?? 0)
-                    sl.totalArea = slData.totalArea ?? 0
-                    sl.managementCompany = slData.managementCompany
-                    sl.boilerHouse = bh
-                }
-            }
-            try context.save()
-            loadItems()
-            reloadAnnotations()
-            showAlert(title: "Импорт завершён", message: "Загружено котельных: \(importData.count)")
-        } catch {
-            print("Ошибка импорта: \(error)")
-            showAlert(title: "Ошибка импорта", message: error.localizedDescription)
-        }
-    }
-
-    // --- Универсальный alert ---
-    override func showAlert(title: String, message: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
+    override func importAllBoilerHousesFromJSON(url: URL) {
+        super.importAllBoilerHousesFromJSON(url: url)
     }
 }
+

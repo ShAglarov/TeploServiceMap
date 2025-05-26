@@ -9,6 +9,7 @@ import UIKit
 import MapKit
 import CoreData
 import UniformTypeIdentifiers
+import CoreXLSX
 
 // MARK: - Протокол для поддержки экспорта/импорта (опционально для универсальности)
 protocol ExportablePoint: Codable {
@@ -83,12 +84,6 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController,
     var mapViewHeightConstraint: NSLayoutConstraint?
     var tableViewTopConstraint: NSLayoutConstraint?
     private let locationManager = CLLocationManager()
-
-    // Путь к файлу points.json в папке Documents
-    private var jsonFileURL: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("points.json")
-    }
-
 
     // --- MARK: - Жизненный цикл ---
     override func viewDidLoad() {
@@ -195,6 +190,18 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController,
     @objc func focusMapOnUserLocationButtonTapped() {
         focusMapOnUserLocation(animated: true)
     }
+
+    // Отображение поисковой строки
+    @objc func showSearchScreen() {
+        let categoryVC = SearchCategoryViewController()
+        categoryVC.onCategorySelected = { [weak categoryVC] category in
+            let searchVC = AccountsSearchViewController(category: category)
+            let nav = UINavigationController(rootViewController: searchVC)
+            categoryVC?.present(nav, animated: true)
+        }
+        present(categoryVC, animated: true)
+    }
+
     func focusMapOnUserLocation(animated: Bool = true) {
         let userCoord = mapView.userLocation.coordinate
         if CLLocationCoordinate2DIsValid(userCoord) {
@@ -207,164 +214,163 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController,
     func setupFloatingMenu() {
         floatingButton.showsMenuAsPrimaryAction = true
         floatingButton.menu = UIMenu(title: "", children: [
-            UIAction(title: "Экспортировать", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
-                self?.exportItemsToJSON()
+            UIAction(title: "Экспортировать ВСЕ", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
+                self?.exportAllBoilerHousesToJSON()
             },
-            UIAction(title: "Импортировать", image: UIImage(systemName: "square.and.arrow.down")) { [weak self] _ in
-                self?.importItemsFromJSON()
+            UIAction(title: "Импортировать ВСЕ", image: UIImage(systemName: "square.and.arrow.down")) { [weak self] _ in
+                let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.json])
+                picker.delegate = self
+                picker.allowsMultipleSelection = false
+                picker.modalPresentationStyle = .formSheet
+                self?.present(picker, animated: true)
             },
-            UIAction(title: "Загрузить из файла", image: UIImage(systemName: "doc")) { [weak self] _ in
-                self?.importFromFileTapped()
+            UIAction(title: "Найти", image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in
+                print("Пункт найти выбран")
+                self?.showSearchScreen()
             }
         ])
     }
 
-    // --- MARK: - Экспорт/Импорт: заглушки (реализуй в наследнике для специфики) ---
-    func exportItemsToJSON() {
-        let exportArray: [ExportedPoint] = items.compactMap { item in
-            var name: String = ""
-            var latitude: Double = 0
-            var longitude: Double = 0
-            var yearBuilt: Int? = nil
-            var totalArea: Double? = nil
-            var floors: Int? = nil
-            var rooms: Int? = nil
-            var accounts: Int? = nil
-            var managementCompany: String? = nil
+    // --- MARK: - XOR "шифрование" для Data (замени на свой алгоритм если нужно) ---
+    func customEncrypt(_ data: Data) -> Data {
+        let key: UInt8 = 0xAA // ЛЮБОЙ ключ, лучше замени на свой
+        return Data(data.map { $0 ^ key })
+    }
+    func customDecrypt(_ data: Data) -> Data {
+        return customEncrypt(data) // тот же XOR для дешифровки
+    }
 
-            if let val = item.value(forKey: "name") as? String { name = val }
-            if let val = item.value(forKey: "latitude") as? Double { latitude = val }
-            if let val = item.value(forKey: "longitude") as? Double { longitude = val }
-            if let val = item.entity.attributesByName["yearBuilt"], let valRaw = item.value(forKey: "yearBuilt") {
-                yearBuilt = (valRaw as? Int) ?? (valRaw as? Int32).map { Int($0) }
-            }
-            if let _ = item.entity.attributesByName["totalArea"] {
-                totalArea = item.value(forKey: "totalArea") as? Double
-            }
-            if let _ = item.entity.attributesByName["floors"] {
-                floors = (item.value(forKey: "floors") as? Int) ?? (item.value(forKey: "floors") as? Int32).map { Int($0) }
-            }
-            if let _ = item.entity.attributesByName["rooms"] {
-                rooms = (item.value(forKey: "rooms") as? Int) ?? (item.value(forKey: "rooms") as? Int32).map { Int($0) }
-            }
-            if let _ = item.entity.attributesByName["accounts"] {
-                accounts = (item.value(forKey: "accounts") as? Int) ?? (item.value(forKey: "accounts") as? Int32).map { Int($0) }
-            }
-            if let _ = item.entity.attributesByName["managementCompany"] {
-                managementCompany = item.value(forKey: "managementCompany") as? String
-            }
-
-            return ExportedPoint(
-                name: name,
-                latitude: latitude,
-                longitude: longitude,
-                yearBuilt: yearBuilt,
-                totalArea: totalArea,
-                floors: floors,
-                rooms: rooms,
-                accounts: accounts,
-                managementCompany: managementCompany
-            )
-        }
+    // MARK: - Экспорт "секьюрного Data-JSON"
+    func exportAllBoilerHousesToJSON() {
+        let context = PersistenceController.shared.context
+        let fetchRequest: NSFetchRequest<BoilerHouse> = BoilerHouse.fetchRequest()
         do {
-            let data = try JSONEncoder().encode(exportArray)
-            try data.write(to: jsonFileURL)
-            let activityVC = UIActivityViewController(activityItems: [jsonFileURL], applicationActivities: nil)
+            let boilerHouses = try context.fetch(fetchRequest)
+            let exportArray: [ExportedBoilerHouse] = boilerHouses.map { boiler in
+                ExportedBoilerHouse(
+                    name: boiler.name ?? "",
+                    latitude: boiler.latitude,
+                    longitude: boiler.longitude,
+                    savedLocations: (boiler.savedLocations as? Set<SavedLocation>)?.map { location in
+                        ExportedSavedLocation(
+                            name: location.name ?? "",
+                            latitude: location.latitude,
+                            longitude: location.longitude,
+                            floors: Int(location.floors),
+                            yearBuilt: Int(location.yearBuilt),
+                            rooms: Int(location.rooms),
+                            accounts: (location.myAccounts as? Set<MyAccount>)?.map { acc in
+                                ExportedAccount(
+                                    accountNumber: acc.accountNumber ?? "",
+                                    fio: acc.fio ?? "",
+                                    area: acc.area,
+                                    status: acc.status ?? "",
+                                    openDate: acc.openDate,
+                                    closeDate: acc.closeDate,
+                                    phone: acc.phone ?? "",
+                                    email: acc.email ?? "",
+                                    address: acc.address ?? ""
+                                )
+                            } ?? [],
+                            totalArea: location.totalArea,
+                            managementCompany: location.managementCompany
+                        )
+                    } ?? []
+                )
+            }
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let jsonData = try encoder.encode(exportArray)
+            let encryptedData = customEncrypt(jsonData)
+            let tmpUrl = FileManager.default.temporaryDirectory.appendingPathComponent("boilerhouses.json")
+            try encryptedData.write(to: tmpUrl)
+            let activityVC = UIActivityViewController(activityItems: [tmpUrl], applicationActivities: nil)
             present(activityVC, animated: true)
         } catch {
             showAlert(title: "Ошибка экспорта", message: error.localizedDescription)
         }
     }
 
-    func importItemsFromJSON() {
-        let fm = FileManager.default
-        if !fm.fileExists(atPath: jsonFileURL.path) {
-            showAlert(title: "Файл не найден", message: "Экспортируйте объекты перед импортом или скопируйте points.json в приложение через Files/AirDrop.")
-            return
-        }
+    // MARK: - Импорт "секьюрного Data-JSON"
+    func importAllBoilerHousesFromJSON(url: URL) {
+        let context = PersistenceController.shared.context
         do {
-            let data = try Data(contentsOf: jsonFileURL) // <-- исправлено здесь
-            let imported = try JSONDecoder().decode([ExportedPoint].self, from: data)
-            let context = PersistenceController.shared.context
-            for object in items {
-                context.delete(object)
+            var needsStop = false
+            if url.startAccessingSecurityScopedResource() {
+                needsStop = true
             }
-            for e in imported {
-                let newObject = NSEntityDescription.insertNewObject(forEntityName: String(describing: Item.self), into: context)
-                newObject.setValue(e.name, forKey: "name")
-                newObject.setValue(e.latitude, forKey: "latitude")
-                newObject.setValue(e.longitude, forKey: "longitude")
-                newObject.setValue(e.yearBuilt ?? 0, forKey: "yearBuilt")
-                newObject.setValue(e.totalArea ?? 0, forKey: "totalArea")
-                newObject.setValue(e.floors ?? 0, forKey: "floors")
-                newObject.setValue(e.rooms ?? 0, forKey: "rooms")
-                newObject.setValue(e.accounts ?? 0, forKey: "accounts")
-                newObject.setValue(e.managementCompany, forKey: "managementCompany")
+            defer {
+                if needsStop { url.stopAccessingSecurityScopedResource() }
+            }
+            // 1. Читаем бинарный Data
+            let encryptedData = try Data(contentsOf: url)
+            // 2. Декодируем
+            let jsonData = customDecrypt(encryptedData)
+            // 3. Теперь обычный декодер JSON
+            let imported = try JSONDecoder().decode([ExportedBoilerHouse].self, from: jsonData)
+
+            // Удаляем всё старое
+            let oldAccounts = try context.fetch(MyAccount.fetchRequest()) as! [MyAccount]
+            for obj in oldAccounts { context.delete(obj) }
+            let oldSavedLocations = try context.fetch(SavedLocation.fetchRequest()) as! [SavedLocation]
+            for obj in oldSavedLocations { context.delete(obj) }
+            let oldBoilerHouses = try context.fetch(BoilerHouse.fetchRequest()) as! [BoilerHouse]
+            for obj in oldBoilerHouses { context.delete(obj) }
+
+            // Импорт новых данных
+            for bhData in imported {
+                let bh = BoilerHouse(context: context)
+                bh.name = bhData.name
+                bh.latitude = bhData.latitude
+                bh.longitude = bhData.longitude
+
+                for slData in bhData.savedLocations {
+                    let sl = SavedLocation(context: context)
+                    sl.name = slData.name
+                    sl.latitude = slData.latitude
+                    sl.longitude = slData.longitude
+                    sl.floors = Int32(slData.floors ?? 0)
+                    sl.yearBuilt = Int32(slData.yearBuilt ?? 0)
+                    sl.rooms = Int32(slData.rooms ?? 0)
+                    sl.totalArea = slData.totalArea ?? 0
+                    sl.managementCompany = slData.managementCompany
+                    sl.boilerHouse = bh
+
+                    for acc in slData.accounts {
+                        let newAcc = MyAccount(context: context)
+                        newAcc.accountNumber = acc.accountNumber
+                        newAcc.fio = acc.fio
+                        newAcc.area = acc.area
+                        newAcc.status = acc.status
+                        newAcc.openDate = acc.openDate
+                        newAcc.closeDate = acc.closeDate
+                        newAcc.phone = acc.phone
+                        newAcc.email = acc.email
+                        newAcc.address = acc.address
+                        newAcc.location = sl
+                    }
+                }
             }
             try context.save()
             loadItems()
             reloadAnnotations()
-            showAlert(title: "Импорт завершён", message: "Загружено объектов: \(imported.count)")
+            showAlert(title: "Импорт завершён", message: "Загружено котельных: \(imported.count)")
         } catch {
             showAlert(title: "Ошибка импорта JSON", message: error.localizedDescription)
         }
     }
 
     // --- MARK: - Импорт через DocumentPicker ---
-    @objc private func importFromFileTapped() {
+    @objc func importFromFileTapped() {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.json])
         picker.delegate = self
         picker.allowsMultipleSelection = false
         present(picker, animated: true)
     }
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        guard let selectedURL = urls.first else { return }
-        let fileManager = FileManager.default
-        let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let destinationURL = docsURL.appendingPathComponent("points.json")
-        var fileToRead = selectedURL
-
-        if selectedURL.deletingLastPathComponent() != docsURL {
-            if selectedURL.startAccessingSecurityScopedResource() {
-                defer { selectedURL.stopAccessingSecurityScopedResource() }
-                do {
-                    if fileManager.fileExists(atPath: destinationURL.path) {
-                        try fileManager.removeItem(at: destinationURL)
-                    }
-                    try fileManager.copyItem(at: selectedURL, to: destinationURL)
-                    fileToRead = destinationURL
-                } catch {
-                    showAlert(title: "Ошибка копирования", message: error.localizedDescription)
-                    return
-                }
-            }
-        }
-        do {
-            let data = try Data(contentsOf: fileToRead)
-            let imported = try JSONDecoder().decode([ExportedPoint].self, from: data) // <-- исправлено здесь
-            let context = PersistenceController.shared.context
-            for object in items { context.delete(object) }
-            for e in imported {
-                let newObject = NSEntityDescription.insertNewObject(forEntityName: String(describing: Item.self), into: context)
-                newObject.setValue(e.name, forKey: "name")
-                newObject.setValue(e.latitude, forKey: "latitude")
-                newObject.setValue(e.longitude, forKey: "longitude")
-                newObject.setValue(e.yearBuilt ?? 0, forKey: "yearBuilt")
-                newObject.setValue(e.totalArea ?? 0, forKey: "totalArea")
-                newObject.setValue(e.floors ?? 0, forKey: "floors")
-                newObject.setValue(e.rooms ?? 0, forKey: "rooms")
-                newObject.setValue(e.accounts ?? 0, forKey: "accounts")
-                newObject.setValue(e.managementCompany, forKey: "managementCompany")
-            }
-            try context.save()
-            loadItems()
-            reloadAnnotations()
-            showAlert(title: "Импорт завершён", message: "Загружено объектов: \(imported.count)")
-        } catch {
-            showAlert(title: "Ошибка импорта JSON", message: error.localizedDescription)
-        }
+        guard let fileURL = urls.first else { return }
+        importAllBoilerHousesFromJSON(url: fileURL)
     }
-
 
     // --- MARK: - TableView стиль ---
     func tableStyle() {
@@ -384,7 +390,6 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController,
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "BaseCell") ?? UITableViewCell(style: .subtitle, reuseIdentifier: "BaseCell")
-        // Универсально — наследник сам кастует к нужному типу и выводит нужные данные
         let cornerRadius: CGFloat = 22
         let pipeColor = UIColor.systemGray6.withAlphaComponent(0.86)
         let pipeBorderColor = UIColor.systemGray4.withAlphaComponent(0.14)
@@ -403,7 +408,6 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController,
         pipeView.addSubview(border)
         cell.backgroundView = pipeView
 
-        // Демо-значения (наследник делает свой кастинг и вывод)
         cell.textLabel?.text = "Title"
         cell.textLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
         cell.textLabel?.textColor = UIColor.label
@@ -542,5 +546,104 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController,
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
+    }
+
+    func exportToCSV() {
+        let context = PersistenceController.shared.context
+        let fetchRequest: NSFetchRequest<BoilerHouse> = BoilerHouse.fetchRequest()
+        do {
+            let boilerHouses = try context.fetch(fetchRequest)
+
+            // Собираем строки для CSV
+            var csv = "Котельная,Объект,Адрес,Управляющая компания,Год постройки,ЛС (accountNumber),ФИО,Статус,Площадь,Открыт,Закрыт,Телефон,Email\n"
+
+            for boiler in boilerHouses {
+                let boilerName = boiler.name ?? ""
+                guard let locations = boiler.savedLocations as? Set<SavedLocation> else { continue }
+                for loc in locations {
+                    let objectName = loc.name ?? ""
+                    let managementCompany = loc.managementCompany ?? ""
+                    let yearBuilt = loc.yearBuilt != 0 ? "\(loc.yearBuilt)" : ""
+                    guard let accounts = loc.myAccounts as? Set<MyAccount> else { continue }
+                    for acc in accounts {
+                        let row: [String] = [
+                            boilerName,
+                            objectName,
+                            acc.address ?? "",
+                            managementCompany,
+                            yearBuilt,
+                            acc.accountNumber ?? "",
+                            acc.fio ?? "",
+                            acc.status ?? "",
+                            acc.area != 0 ? "\(acc.area)" : "",
+                            acc.openDate?.description ?? "",
+                            acc.closeDate?.description ?? "",
+                            acc.phone ?? "",
+                            acc.email ?? ""
+                        ]
+                        csv += row.map { "\"\($0)\"" }.joined(separator: ",") + "\n"
+                    }
+                }
+            }
+
+            let data = csv.data(using: .utf8)!
+            let tmpUrl = FileManager.default.temporaryDirectory.appendingPathComponent("export.csv")
+            try data.write(to: tmpUrl)
+            let activityVC = UIActivityViewController(activityItems: [tmpUrl], applicationActivities: nil)
+            present(activityVC, animated: true)
+
+        } catch {
+            showAlert(title: "Ошибка экспорта в CSV", message: error.localizedDescription)
+        }
+    }
+
+    func exportAllBoilerHousesToOriginalJSON() {
+        let context = PersistenceController.shared.context
+        let fetchRequest: NSFetchRequest<BoilerHouse> = BoilerHouse.fetchRequest()
+        do {
+            let boilerHouses = try context.fetch(fetchRequest)
+            let exportArray: [ExportedBoilerHouse] = boilerHouses.map { boiler in
+                ExportedBoilerHouse(
+                    name: boiler.name ?? "",
+                    latitude: boiler.latitude,
+                    longitude: boiler.longitude,
+                    savedLocations: (boiler.savedLocations as? Set<SavedLocation>)?.map { location in
+                        ExportedSavedLocation(
+                            name: location.name ?? "",
+                            latitude: location.latitude,
+                            longitude: location.longitude,
+                            floors: Int(location.floors),
+                            yearBuilt: Int(location.yearBuilt),
+                            rooms: Int(location.rooms),
+                            accounts: (location.myAccounts as? Set<MyAccount>)?.map { acc in
+                                ExportedAccount(
+                                    accountNumber: acc.accountNumber ?? "",
+                                    fio: acc.fio ?? "",
+                                    area: acc.area,
+                                    status: acc.status ?? "",
+                                    openDate: acc.openDate,
+                                    closeDate: acc.closeDate,
+                                    phone: acc.phone ?? "",
+                                    email: acc.email ?? "",
+                                    address: acc.address ?? ""
+                                )
+                            } ?? [],
+                            totalArea: location.totalArea,
+                            managementCompany: location.managementCompany
+                        )
+                    } ?? []
+                )
+            }
+
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let data = try encoder.encode(exportArray)
+            let tmpUrl = FileManager.default.temporaryDirectory.appendingPathComponent("boilerhouses.json")
+            try data.write(to: tmpUrl)
+            let activityVC = UIActivityViewController(activityItems: [tmpUrl], applicationActivities: nil)
+            present(activityVC, animated: true)
+        } catch {
+            showAlert(title: "Ошибка экспорта", message: error.localizedDescription)
+        }
     }
 }

@@ -30,7 +30,7 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
 
     // MARK: - Загрузка домов котельной
     override func loadItems() {
-        let request = SavedLocation.fetchRequest() as! NSFetchRequest<SavedLocation>
+        let request = SavedLocation.fetchRequest() 
         request.predicate = NSPredicate(format: "boilerHouse == %@", boilerHouse)
         do {
             items = try PersistenceController.shared.context.fetch(request)
@@ -59,17 +59,16 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
     override func setupFloatingMenu() {
         floatingButton.showsMenuAsPrimaryAction = true
         floatingButton.menu = UIMenu(title: "", children: [
-            UIAction(title: "Добавить дом", image: UIImage(systemName: "plus.rectangle")) { [weak self] _ in
-                self?.showAddItemScreen()
+            UIAction(title: "Тут подумать надо", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] one in
+                self?.exportToCSV()
             },
-            UIAction(title: "Экспортировать дома", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
-                self?.exportItemsToJSON()
-            },
-            UIAction(title: "Импортировать дома", image: UIImage(systemName: "square.and.arrow.down")) { [weak self] _ in
-                self?.importItemsFromJSON()
+            UIAction(title: "что сюда добавить", image: UIImage(systemName: "square.and.arrow.down")) { [weak self] one in
+                print(self?.boilerHouse.name ?? "")
             }
         ])
     }
+
+
 
     // MARK: - Добавить дом — современный способ
     func showAddItemScreen(withCoordinates coord: CLLocationCoordinate2D? = nil) {
@@ -85,7 +84,15 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
             self?.loadItems()
         }
         let nav = UINavigationController(rootViewController: vc)
-        self.present(nav, animated: true)
+        present(nav, animated: true)
+    }
+
+    override func exportToCSV() {
+        super.exportToCSV()
+    }
+
+    override func exportAllBoilerHousesToOriginalJSON() {
+        super.exportAllBoilerHousesToOriginalJSON()
     }
 
     // MARK: - Редактировать дом
@@ -97,7 +104,7 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
             completion()
         }
         let nav = UINavigationController(rootViewController: vc)
-        self.present(nav, animated: true)
+        present(nav, animated: true)
         // Возвращаем "пустой" алерт — он не используется, но требует реализации по сигнатуре
         return UIAlertController()
     }
