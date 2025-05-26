@@ -2,7 +2,7 @@
 //  SavedLocation+CoreDataProperties.swift
 //  TeploserviceMap
 //
-//  Created by Shamil Aglarov on 24.05.2025.
+//  Created by Murad Tataev on 25.05.2025.
 //
 //
 
@@ -26,6 +26,24 @@ extension SavedLocation {
     @NSManaged public var totalArea: Double
     @NSManaged public var yearBuilt: Int32
     @NSManaged public var boilerHouse: BoilerHouse?
+    @NSManaged public var myAccounts: NSSet?
+
+}
+
+// MARK: Generated accessors for myAccounts
+extension SavedLocation {
+
+    @objc(addMyAccountsObject:)
+    @NSManaged public func addToMyAccounts(_ value: MyAccount)
+
+    @objc(removeMyAccountsObject:)
+    @NSManaged public func removeFromMyAccounts(_ value: MyAccount)
+
+    @objc(addMyAccounts:)
+    @NSManaged public func addToMyAccounts(_ values: NSSet)
+
+    @objc(removeMyAccounts:)
+    @NSManaged public func removeFromMyAccounts(_ values: NSSet)
 
 }
 
