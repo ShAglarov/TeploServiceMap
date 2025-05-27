@@ -10,6 +10,10 @@ import Foundation
 import CoreData
 
 
+public class SavedLocation: NSManagedObject {
+
+}
+
 extension SavedLocation {
 
     @nonobjc public class func fetchRequest() -> NSFetchRequest<SavedLocation> {
