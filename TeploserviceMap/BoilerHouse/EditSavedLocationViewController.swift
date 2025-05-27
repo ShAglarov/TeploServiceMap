@@ -131,7 +131,8 @@ class EditSavedLocationViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         if indexPath.row == 8 {
-            let accountsVC = MyAccountsListViewController(savedLocation: savedLocation)
+            let accountsVC = MyAccountViewController()
+            accountsVC.savedLocation = savedLocation
             navigationController?.pushViewController(accountsVC, animated: true)
         }
     }

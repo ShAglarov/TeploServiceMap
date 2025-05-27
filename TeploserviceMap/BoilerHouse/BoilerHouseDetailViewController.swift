@@ -63,7 +63,8 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
                 self?.exportToCSV()
             },
             UIAction(title: "что сюда добавить", image: UIImage(systemName: "square.and.arrow.down")) { [weak self] one in
-                print(self?.boilerHouse.name ?? "")
+                self?.exportAllBoilerHousesToOriginalJSON()
+//                print(self?.boilerHouse.name ?? "")
             }
         ])
     }

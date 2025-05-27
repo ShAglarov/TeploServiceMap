@@ -9,6 +9,9 @@
 import Foundation
 import CoreData
 
+public class BoilerHouse: NSManagedObject {
+
+}
 
 extension BoilerHouse {
 

@@ -7,9 +7,13 @@
 
 import CoreData
 
-class PersistenceController {
+final class PersistenceController {
     static let shared = PersistenceController()
 
+    var boilers: [BoilerHouse] = []
+    var savesLocations: [SavedLocation] = []
+    var accounts: [MyAccount] = []
+    
     let container: NSPersistentContainer
 
     private init() {
@@ -24,4 +28,7 @@ class PersistenceController {
     var context: NSManagedObjectContext {
         container.viewContext
     }
+    
+    
+    
 }

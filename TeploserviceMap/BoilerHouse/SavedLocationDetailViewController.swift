@@ -196,6 +196,46 @@ class AccountListViewController: UITableViewController {
         let nav = UINavigationController(rootViewController: editVC)
         present(nav, animated: true) // <-- и тут тоже открывается модально!
     }
+    
+    override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] (_, _, completionHandler) in
+            guard let self else {
+                completionHandler(false)
+                return
+            }
+
+            let accountToDelete = self.accounts[indexPath.row]
+            guard let context = accountToDelete.managedObjectContext else {
+                completionHandler(false)
+                return
+            }
+
+            context.delete(accountToDelete)
+
+            do {
+                try context.save()
+
+                if let indexInAccounts = self.accounts.firstIndex(of: accountToDelete) {
+                    self.accounts.remove(at: indexInAccounts)
+                }
+
+                self.accounts.remove(at: indexPath.row)
+
+                tableView.deleteRows(at: [indexPath], with: .automatic)
+
+                completionHandler(true)
+            } catch {
+                completionHandler(false)
+                let alert = UIAlertController(title: "Ошибка", message: "Не удалось удалить лицевой счет.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                self.present(alert, animated: true)
+            }
+        }
+        deleteAction.backgroundColor = .red
+        return UISwipeActionsConfiguration(actions: [deleteAction])
+
+    }
+    
 }
 
 
