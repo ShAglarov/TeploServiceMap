@@ -59,17 +59,24 @@ class BoilerHouseDetailViewController: BaseMapListViewController<SavedLocation> 
     override func setupFloatingMenu() {
         floatingButton.showsMenuAsPrimaryAction = true
         floatingButton.menu = UIMenu(title: "", children: [
-            UIAction(title: "Тут подумать надо", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] one in
-                self?.exportToCSV()
+            UIAction(title: "Экспорт в json", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
+                self?.exportAllBoilerHousesToJSONnew()
             },
-            UIAction(title: "что сюда добавить", image: UIImage(systemName: "square.and.arrow.down")) { [weak self] one in
-                self?.exportAllBoilerHousesToOriginalJSON()
-//                print(self?.boilerHouse.name ?? "")
+            UIAction(title: "Импорт json", image: UIImage(systemName: "square.and.arrow.down")) { [weak self] _ in
+                guard let self = self else { return }
+                let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json])
+                picker.delegate = self
+                picker.allowsMultipleSelection = false
+                picker.modalPresentationStyle = .formSheet
+                self.present(picker, animated: true)
             }
         ])
     }
-
-
+    
+    override func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let fileURL = urls.first else { return }
+        importAllBoilerHousesFromJSONew(url: fileURL)
+    }
 
     // MARK: - Добавить дом — современный способ
     func showAddItemScreen(withCoordinates coord: CLLocationCoordinate2D? = nil) {

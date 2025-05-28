@@ -646,4 +646,136 @@ class BaseMapListViewController<Item: NSManagedObject>: UIViewController,
             showAlert(title: "Ошибка экспорта", message: error.localizedDescription)
         }
     }
+    
+    func importAllBoilerHousesFromJSONew(url: URL) {
+            var needsStop = false
+            // Разрешаем временный доступ к файлу, выбранному через Document Picker
+            if url.startAccessingSecurityScopedResource() {
+                needsStop = true
+            }
+            defer {
+                if needsStop { url.stopAccessingSecurityScopedResource() }
+            }
+            do {
+                // 1. Чтение данных из файла
+                let data = try Data(contentsOf: url)
+                print("Считан файл: \(url.lastPathComponent), размер: \(data.count) байт")
+                
+                // 2. Для отладки: покажи содержимое файла
+                if let str = String(data: data, encoding: .utf8) {
+                    print("Содержимое файла:\n\(str)")
+                }
+                
+                // 3. Пробуем декодировать массив ExportedBoilerHouse
+                let decoder = JSONDecoder()
+                let imported = try decoder.decode([ExportedBoilerHouse].self, from: data)
+                print("Импортировано котельных: \(imported.count)")
+                
+                // 4. Логика сохранения данных в CoreData (пример)
+                let context = PersistenceController.shared.context
+                
+                // Удаляем старые данные (если нужно)
+                let oldAccounts = try context.fetch(MyAccount.fetchRequest()) as! [MyAccount]
+                for obj in oldAccounts { context.delete(obj) }
+                let oldSavedLocations = try context.fetch(SavedLocation.fetchRequest()) as! [SavedLocation]
+                for obj in oldSavedLocations { context.delete(obj) }
+                let oldBoilerHouses = try context.fetch(BoilerHouse.fetchRequest()) as! [BoilerHouse]
+                for obj in oldBoilerHouses { context.delete(obj) }
+                
+                // Импорт новых данных
+                for bhData in imported {
+                    let bh = BoilerHouse(context: context)
+                    bh.name = bhData.name
+                    bh.latitude = bhData.latitude
+                    bh.longitude = bhData.longitude
+                    
+                    for slData in bhData.savedLocations {
+                        let sl = SavedLocation(context: context)
+                        sl.name = slData.name
+                        sl.latitude = slData.latitude
+                        sl.longitude = slData.longitude
+                        sl.floors = Int32(slData.floors ?? 0)
+                        sl.yearBuilt = Int32(slData.yearBuilt ?? 0)
+                        sl.rooms = Int32(slData.rooms ?? 0)
+                        sl.totalArea = slData.totalArea ?? 0
+                        sl.managementCompany = slData.managementCompany
+                        sl.boilerHouse = bh
+                        
+                        for acc in slData.accounts {
+                            let newAcc = MyAccount(context: context)
+                            newAcc.accountNumber = acc.accountNumber
+                            newAcc.fio = acc.fio
+                            newAcc.area = acc.area
+                            newAcc.status = acc.status
+                            newAcc.openDate = acc.openDate
+                            newAcc.closeDate = acc.closeDate
+                            newAcc.phone = acc.phone
+                            newAcc.email = acc.email
+                            newAcc.address = acc.address
+                            newAcc.location = sl
+                        }
+                    }
+                }
+                // 5. Сохраняем изменения в CoreData
+                try context.save()
+                // 6. Обновляем UI
+                loadItems()
+                reloadAnnotations()
+                // 7. Уведомление об успехе
+                showAlert(title: "Импорт завершён", message: "Загружено котельных: \(imported.count)")
+            } catch {
+                print("Ошибка импорта: \(error)")
+                showAlert(title: "Ошибка импорта JSON", message: error.localizedDescription)
+            }
+        }
+    
+    func exportAllBoilerHousesToJSONnew() {
+            let context = PersistenceController.shared.context
+            let fetchRequest: NSFetchRequest<BoilerHouse> = BoilerHouse.fetchRequest()
+            do {
+                let boilerHouses = try context.fetch(fetchRequest)
+                let exportArray: [ExportedBoilerHouse] = boilerHouses.map { boiler in
+                    ExportedBoilerHouse(
+                        name: boiler.name ?? "",
+                        latitude: boiler.latitude,
+                        longitude: boiler.longitude,
+                        savedLocations: (boiler.savedLocations as? Set<SavedLocation>)?.map { location in
+                            ExportedSavedLocation(
+                                name: location.name ?? "",
+                                latitude: location.latitude,
+                                longitude: location.longitude,
+                                floors: Int(location.floors),
+                                yearBuilt: Int(location.yearBuilt),
+                                rooms: Int(location.rooms),
+                                accounts: (location.myAccounts as? Set<MyAccount>)?.map { acc in
+                                    ExportedAccount(
+                                        accountNumber: acc.accountNumber ?? "",
+                                        fio: acc.fio ?? "",
+                                        area: acc.area,
+                                        status: acc.status ?? "",
+                                        openDate: acc.openDate,
+                                        closeDate: acc.closeDate,
+                                        phone: acc.phone ?? "",
+                                        email: acc.email ?? "",
+                                        address: acc.address ?? ""
+                                    )
+                                } ?? [],
+                                totalArea: location.totalArea,
+                                managementCompany: location.managementCompany
+                            )
+                        } ?? []
+                    )
+                }
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .prettyPrinted
+                let jsonData = try encoder.encode(exportArray)
+                let tmpUrl = FileManager.default.temporaryDirectory.appendingPathComponent("boilerhouses.json")
+                try jsonData.write(to: tmpUrl)
+                let activityVC = UIActivityViewController(activityItems: [tmpUrl], applicationActivities: nil)
+                present(activityVC, animated: true)
+            } catch {
+                showAlert(title: "Ошибка экспорта", message: error.localizedDescription)
+            }
+        }
+
 }
