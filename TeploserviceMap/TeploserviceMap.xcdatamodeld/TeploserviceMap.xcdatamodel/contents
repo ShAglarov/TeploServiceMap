@@ -1,4 +1,35 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1" systemVersion="11A491" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="false" userDefinedModelVersionIdentifier="">
-    <elements/>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22757" systemVersion="23G93" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="BoilerHouse" representedClassName=".BoilerHouse" syncable="YES">
+        <attribute name="latitude" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="longitude" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <relationship name="savedLocations" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="SavedLocation" inverseName="boilerHouse" inverseEntity="SavedLocation"/>
+    </entity>
+    <entity name="MyAccount" representedClassName=".MyAccount" syncable="YES">
+        <attribute name="accountNumber" optional="YES" attributeType="String"/>
+        <attribute name="address" optional="YES" attributeType="String"/>
+        <attribute name="area" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="closeDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="email" optional="YES" attributeType="String"/>
+        <attribute name="fio" optional="YES" attributeType="String"/>
+        <attribute name="openDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="phone" optional="YES" attributeType="String"/>
+        <attribute name="serviceType" optional="YES" attributeType="String"/>
+        <attribute name="status" optional="YES" attributeType="String"/>
+        <relationship name="location" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="SavedLocation" inverseName="myAccounts" inverseEntity="SavedLocation"/>
+    </entity>
+    <entity name="SavedLocation" representedClassName=".SavedLocation" syncable="YES">
+        <attribute name="accounts" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="floors" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="latitude" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="longitude" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="managementCompany" optional="YES" attributeType="String"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="rooms" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="totalArea" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="yearBuilt" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="boilerHouse" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BoilerHouse" inverseName="savedLocations" inverseEntity="BoilerHouse"/>
+        <relationship name="myAccounts" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="MyAccount" inverseName="location" inverseEntity="MyAccount"/>
+    </entity>
 </model>
